@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+
+.auth-container {
+  background: linear-gradient(rgba(50, 63, 73, 0.15), rgba(50, 63, 73, 0.15)),
+    url('/public/images/background.png');
+  background-size: cover;
+  background-position: center;
+  background-color: #323F49;
+
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+.auth-card {
+  background-color: #1a1c1e;
+  padding: 10px 30px 40px 30px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  width: 350px;
+  text-align: center;
+  color: white;
+}
+
+.auth-title {
+  font-family: 'Dancing Script', cursive;
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  line-height: 1.1;
+}
+
+.input-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.input-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: #f0f0f0;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 45px 12px 12px;
+  border-radius: 5px;
+  border: none;
+  background-color: #cfcfcf;
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input-icon {
+  position: absolute;
+  right: 12px;
+  color: #666;
+  font-size: 1.3rem;
+  pointer-events: none;
+}
+
+.input-icon-img {
+  position: absolute;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.password-toggle {
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.2s;
+}
+
+.password-toggle:hover {
+  opacity: 0.7;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 45px 12px 12px;
+  border-radius: 5px;
+  border: none;
+  background-color: #cfcfcf;
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.auth-button {
+  width: 65%;
+  padding: 12px;
+  margin-top: 25px;
+  border-radius: 30px;
+  border: none;
+  background-color: #1b5e20;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.auth-button:disabled {
+    cursor: not-allowed;
+    background-color: #999;
+}
+
+.requirements-container {
+    text-align: left;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.requirements-container p {
+    margin: 4px 0;
+    font-size: 0.75rem;
+    transition: color 0.3s ease;
+}
+
+.invalid {
+    color: #ff6b6b;
+}
+
+.valid {
+    color: #4caf50;
+}
+
+.footer-text {
+  margin-top: 25px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.auth-link {
+  color: #008000;
+  /* Green link color */
+  text-decoration: none;
+  font-weight: bold;
+  margin-left: 5px;
+}
