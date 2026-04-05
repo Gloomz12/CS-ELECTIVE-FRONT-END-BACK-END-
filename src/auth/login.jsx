@@ -32,7 +32,6 @@ function Login() {
 
     useEffect(() => {
         const verifyBackend = async () => {
-            // Change the URL to match the specific file you are testing
             const testUrl = "http://localhost/api/auth/login.php?test_connection=true";
 
             console.log("%c--- System Connection Audit ---", "color: #2196F3; font-weight: bold;");

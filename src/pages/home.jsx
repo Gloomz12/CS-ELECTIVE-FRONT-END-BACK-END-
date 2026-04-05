@@ -3,7 +3,36 @@ import axios from 'axios';
 
 function Home() {
     const [dateTime, setDateTime] = useState(new Date());
-    const [username, setUsername] = useState('User');
+    const [username, setUsername] = useState('...'); 
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            const userId = localStorage.getItem("userId");
+            
+            if (!userId) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await axios.post("http://localhost/api/users/profile.php", {
+                    user_id: userId
+                });
+
+                if (response.data.success) {
+                    setUsername(response.data.data.username);
+                } else {
+                    console.error("Failed to load user:", response.data.message);
+                    setUsername("Guest");
+                }
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+                setUsername("Guest");
+            }
+        };
+
+        fetchUserProfile();
+    }, []); 
 
     useEffect(() => {
         const timer = setInterval(() => setDateTime(new Date()), 1000);
@@ -12,7 +41,6 @@ function Home() {
 
     const formatDate = (date) => {
         const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
-        // Format: Mon, Feb. 24, 2026
         return date.toLocaleDateString('en-US', options).replace(/,/g, '');
     };
 
@@ -64,7 +92,7 @@ function Home() {
                 </header>
 
                 <main className="welcome-body">
-                    <h2 className="welcome-msg">Welcome back, {username}!</h2>
+                    <h2 className="welcome-msg">Hello {username}! Welcome to Dorm Dash</h2>
                     <p className="welcome-subtext">You are now securely logged into the Dorm Dash Rental Management Portal.</p>
                 </main>
             </div>

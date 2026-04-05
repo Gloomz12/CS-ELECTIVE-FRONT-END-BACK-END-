@@ -8,6 +8,7 @@ function Register() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [errorMessage, setErrorMessage] = useState(""); 
 
     const [validations, setValidations] = useState({
         upper: false,
@@ -33,6 +34,8 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage(""); 
+
         if (!isFormValid) return;
 
         try {
@@ -45,9 +48,12 @@ function Register() {
 
             if (response.data.success) {
                 navigate("/login");
+            } else {
+                setErrorMessage(response.data.message || "The email or username is already registered. Please try again.");
             }
         } catch (err) {
             console.error("Registration error:", err.response?.data?.message || "Registration failed");
+            setErrorMessage(err.response?.data?.message || "A network error occurred. Please try again.");
         }
     };
 
@@ -137,6 +143,12 @@ function Register() {
                             <img src="/images/card.png" alt="username" className="input-icon-img" />
                         </div>
                     </div>
+
+                    {errorMessage && (
+                        <div style={{ color: '#ff4d4d', fontSize: '14px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>
+                            {errorMessage}
+                        </div>
+                    )}
 
                     <button type="submit" className="auth-button" disabled={!isFormValid}>Register now</button>
                 </form>
