@@ -14,7 +14,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={isAuth ? <Navigate to="/home" /> : <Landing />} />
         <Route path="/login" element={isAuth ? <Navigate to="/home" /> : <Login />} />
         <Route path="/register" element={isAuth ? <Navigate to="/home" /> : <Register />} />
         <Route path="/home" element={ <ProtectedRoute> <Home /> </ProtectedRoute>}/>

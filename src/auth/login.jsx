@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -30,6 +30,40 @@ function Login() {
         }
     };
 
+    useEffect(() => {
+        const verifyBackend = async () => {
+            // Change the URL to match the specific file you are testing
+            const testUrl = "http://localhost/api/auth/login.php?test_connection=true";
+
+            console.log("%c--- System Connection Audit ---", "color: #2196F3; font-weight: bold;");
+
+            try {
+                const response = await axios.get(testUrl);
+
+                if (response.data.success) {
+                    console.log("%c✔ Backend Reachable", "color: #4CAF50;");
+                    console.log("Database Status:", response.data.database);
+                    console.log("Server Timestamp:", response.data.server_time);
+                }
+            } catch (err) {
+                console.error("%c✘ Connection Failed", "color: #F44336; font-weight: bold;");
+
+                if (err.response) {
+                    console.table({
+                        Status: err.response.status,
+                        Data: err.response.data,
+                        Source: "PHP Error"
+                    });
+                } else {
+                    console.error("XAMPP/Apache might be offline or URL is incorrect.");
+                }
+            }
+            console.log("%c-------------------------------", "color: #2196F3;");
+        };
+
+        verifyBackend();
+    }, []);
+
     return (
         <div className="auth-container">
             <div className="auth-card">
@@ -39,12 +73,12 @@ function Login() {
                     <div className="input-group">
                         <label className="input-label">Email</label>
                         <div className="input-wrapper">
-                            <input 
-                                type="email" 
-                                className="auth-input" 
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                                required 
+                            <input
+                                type="email"
+                                className="auth-input"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
                             />
                             <img src="/images/mail.png" alt="email" className="input-icon-img" />
                         </div>

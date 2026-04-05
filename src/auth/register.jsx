@@ -56,7 +56,7 @@ function Register() {
             try {
                 console.log("--- Connection Test Started ---");
 
-                const response = await axios.get("http://localhost/api/auth/connection_test.php");
+                const response = await axios.get("http://localhost/api/auth/register.php?test_connection=true");
 
                 console.log("Backend Status:", response.data.status);
                 console.log("Server Message:", response.data.message);
@@ -65,11 +65,9 @@ function Register() {
             } catch (err) {
                 console.error("--- Connection Failed ---");
                 if (err.response) {
-                    // Server responded with an error code (404, 500, etc.)
                     console.error("PHP Error Code:", err.response.status);
                     console.error("PHP Error Detail:", err.response.data);
                 } else if (err.request) {
-                    // Request was made but no response (XAMPP might be off)
                     console.error("No response from PHP. Is Apache running in XAMPP?");
                 } else {
                     console.error("Axios setup error:", err.message);
