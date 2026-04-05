@@ -47,7 +47,7 @@ function Register() {
             });
 
             if (response.data.success) {
-                navigate("/login");
+                alert("Registration successful!");
             } else {
                 setErrorMessage(response.data.message || "The email or username is already registered. Please try again.");
             }
