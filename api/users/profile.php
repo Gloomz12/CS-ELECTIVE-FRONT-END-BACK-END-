@@ -4,9 +4,7 @@ header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
 
 require_once '../config/db.php';
 
@@ -20,12 +18,12 @@ $userId = $data['user_id'] ?? null;
 
 if ($userId) {
     try {
-        $stmt = $conn->prepare("SELECT id, username, email, balance, created_at FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT id, username, email FROM users WHERE id = ?");
         $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch();
 
         if ($user) {
-            echo json_encode(["success" => true, "version" => "test_1", "data" => $user]);
+            echo json_encode(["success" => true, "data" => $user]);
         } else {
             echo json_encode(["success" => false, "message" => "User not found"]);
         }
@@ -35,3 +33,4 @@ if ($userId) {
 } else {
     echo json_encode(["success" => false, "message" => "User ID required"]);
 }
+?>
