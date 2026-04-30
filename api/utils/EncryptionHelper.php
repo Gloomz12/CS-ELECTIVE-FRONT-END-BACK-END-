@@ -1,5 +1,4 @@
 <?php
-// Define a strong 256-bit secret key (Do not change this once data is encrypted in the DB)
 define('AES_256_KEY', 'my-super-secret-32-byte-key-123!');
 
 class EncryptionHelper {
