@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // Icons
@@ -14,6 +15,8 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         setActiveTab(tab);
         setSubView(sub);
     };
+
+    const navigate = useNavigate();
 
     const handleLogout = async () => {
         try {
@@ -35,7 +38,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
             <nav className="sidebar-nav">
                 <button
-                    onClick={() => navigateTo('listings')}
+                    onClick={() => { navigateTo('listings'); navigate('/listings'); }}
                     className={`nav-btn ${activeTab === 'listings' ? 'active' : ''}`}
                 >
                     <Building size={20} />
@@ -43,7 +46,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </button>
 
                 <button
-                    onClick={() => navigateTo('rentings')}
+                    onClick={() => { navigateTo('rentings'); navigate('/rentings'); }}
                     className={`nav-btn ${activeTab === 'rentings' ? 'active' : ''}`}
                 >
                     <Calendar size={20} />
@@ -51,7 +54,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </button>
 
                 <button
-                    onClick={() => navigateTo('my-properties')}
+                    onClick={() => { navigateTo('my-properties'); navigate('/my-properties'); }}
                     className={`nav-btn ${activeTab === 'my-properties' ? 'active' : ''}`}
                 >
                     <ShieldCheck size={20} />

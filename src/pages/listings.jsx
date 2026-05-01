@@ -24,14 +24,17 @@ export default function Listings() {
 
     const [activeTab, setActiveTab] = useState('listings');
     const [subView, setSubView] = useState(null);
-    const [category, setCategory] = useState('all');
-    const [sortOrder, setSortOrder] = useState('none');
-    const categories = ['all', 'condo', 'dorm', 'bedspace', 'boarding house'];
-
     const navigateTo = (tab, sub = null) => {
         setActiveTab(tab);
         setSubView(sub);
     };
+
+
+    const [category, setCategory] = useState('all');
+    const [sortOrder, setSortOrder] = useState('none');
+    const categories = ['all', 'condo', 'dorm', 'bedspace', 'boarding house'];
+
+
 
     const filtered = Array.isArray(properties) ? properties.filter(p => {
         const isNotOwner = p.owner_id !== user.id; // Check if owner_id exists in your DB columns
