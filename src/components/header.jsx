@@ -6,14 +6,13 @@ import LiveClock from "./liveClock.jsx";
 // Hooks
 import useFetchUser from "../hooks/fetchUser.jsx";
 
-export default function Header({ activeTab }) {
+// Icons
 
+export default function Header({ activeTab }) {
 
     const [subView, setSubView] = useState(null);
 
-
     const user = useFetchUser();
-    
 
     const navigateTo = (tab, sub = null) => {
         setSubView(sub);

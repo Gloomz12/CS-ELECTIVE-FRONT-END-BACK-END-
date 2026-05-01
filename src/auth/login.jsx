@@ -23,7 +23,7 @@ function Login() {
                 localStorage.setItem("isLoggedIn", "true");
                 localStorage.setItem("userId", response.data.user_id);
                 localStorage.setItem("username", response.data.username);
-                navigate("/home");
+                navigate("/listings");
             }
         } catch (err) {
             alert(err.response?.data?.message || "Invalid credentials");

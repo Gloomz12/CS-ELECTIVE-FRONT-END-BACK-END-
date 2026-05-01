@@ -1,6 +1,6 @@
 <?php
 define("SERVER", "localhost");
-define("DBASE", "property_rental_db");
+define("DBASE", "dorm_dash_db");
 define("USER", "root");
 define("PWORD", "");
 define("CHARSET", "utf8mb4");
