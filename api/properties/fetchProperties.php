@@ -15,7 +15,7 @@ $database = new Connection();
 $conn = $database->connect();
 
 try {
-    $stmt = $conn->prepare("SELECT id, name, location_address, price_monthly, type, status, main_image_url FROM properties");
+    $stmt = $conn->prepare("SELECT properties.id, properties.owner_id, properties.name, properties.location_address,  properties.price_monthly, properties.type,  properties.status, properties.image_url, properties.map_image_url, properties.created_at, properties.amenities, users.username, users.profile_picture FROM properties INNER JOIN users ON properties.owner_id = users.id");
     $stmt->execute();
     $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

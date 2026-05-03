@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function useFetchProperties() {
-    const [properties, setProperties] = useState([]); // Changed to array since you're fetching a list
+    const [properties, setProperties] = useState([]); 
 
     useEffect(() => {
         const fetchProperties = async () => {
-            const userId = localStorage.getItem("userId"); // Retrieve the ID
+            const userId = localStorage.getItem("userId"); 
 
             try {
                 const response = await axios.post("http://localhost/api/properties/fetchProperties.php", {
-                    user_id: userId // Send the ID to satisfy the PHP 'if' condition
+                    user_id: userId 
                 });
 
                 if (response.data.success) {

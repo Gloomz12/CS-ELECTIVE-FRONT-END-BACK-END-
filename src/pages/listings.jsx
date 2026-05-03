@@ -20,8 +20,6 @@ export default function Listings() {
     console.log(properties);
     const user = useFetchUser();
 
-
-
     const [activeTab, setActiveTab] = useState('listings');
     const [subView, setSubView] = useState(null);
     const navigateTo = (tab, sub = null) => {
@@ -37,9 +35,8 @@ export default function Listings() {
 
 
     const filtered = Array.isArray(properties) ? properties.filter(p => {
-        const isNotOwner = p.owner_id !== user.id; // Check if owner_id exists in your DB columns
         const matchesCategory = category === 'all' || p.type === category;
-        return isNotOwner && matchesCategory;
+        return matchesCategory;
     }) : [];
 
     const sortedProperties = [...filtered].sort((a, b) => {
@@ -54,86 +51,75 @@ export default function Listings() {
 
     console.log("Filtered & Sorted Properties:", sortedProperties);
 
-
     return (
-        <div id="app-container" className="app-layout">
 
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-            <div className="content-wrapper">
-                <Header activeTab={activeTab} />
-
-                <main id="main-view" className="scrollable-content">
-
-
-                    <div className="listings-container">
-                        <div className="listings-controls">
-                            <div className="filter-actions">
-                                <select
-                                    value={sortOrder}
-                                    onChange={e => setSortOrder(e.target.value)}
-                                    className="sort-dropdown"
+        <div className="content-wrapper">
+            <div className="listings-container">
+                <div className="listings-controls">
+                    <div className="filter-actions">
+                        <select
+                            value={sortOrder}
+                            onChange={e => setSortOrder(e.target.value)}
+                            className="sort-dropdown"
+                        >
+                            <option value="none">Sort by Default</option>
+                            <option value="asc">Price: Low to High</option>
+                            <option value="desc">Price: High to Low</option>
+                        </select>
+                        <div className="category-list">
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCategory(cat)}
+                                    className={`category-button ${category === cat ? 'active' : ''}`}
                                 >
-                                    <option value="none">Sort by Default</option>
-                                    <option value="asc">Price: Low to High</option>
-                                    <option value="desc">Price: High to Low</option>
-                                </select>
-                                <div className="category-list">
-                                    {categories.map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setCategory(cat)}
-                                            className={`category-button ${category === cat ? 'active' : ''}`}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="listings-grid">
-                            {sortedProperties.map(prop => {
-                                const isAvailable = prop.status !== 'occupied' && prop.status !== 'unavailable';
-                                return (
-                                    <div
-                                        key={prop.id}
-                                        onClick={() => navigateTo('listings', { type: 'details', payload: prop })}
-                                        className="property-card"
-                                    >
-                                        <div className="card-media">
-                                            <img
-                                                src={prop.main_image_url}
-                                                alt={prop.name}
-                                                className={`property-image ${!isAvailable ? 'unavailable-filter' : ''}`}
-                                            />
-                                            <div className="type-badge">{prop.type}</div>
-                                            {!isAvailable && (
-                                                <div className="status-overlay">
-                                                    <span className="status-label">{prop.status}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="card-body">
-                                            <h3 className="property-name">{prop.name}</h3>
-                                            <p className="property-location">
-                                                <MapPin size={16} /> {prop.location_address}
-                                            </p>
-                                            <div className="card-footer">
-                                                <div className="price-display">
-                                                    <span className="price-amount">₱{prop.price_monthly.toLocaleString()}</span>
-                                                    <span className="price-period">/mo</span>
-                                                </div>
-                                                <button className="view-details-btn">View</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                                    {cat}
+                                </button>
+                            ))}
                         </div>
                     </div>
+                </div>
 
-                </main>
+                <div className="listings-grid">
+                    {sortedProperties.map(prop => {
+                        const isAvailable = prop.status !== 'occupied' && prop.status !== 'unavailable';
+                        const urlName = prop.name.toLowerCase().replace(/\s+/g, '-');
+                        return (
+                            <div
+                                key={prop.id}
+                                onClick={() => navigate(`/main/properties/${urlName}`, { state: { propertyData: prop } })}
+                                className="property-card"
+                            >
+                                <div className="card-media">
+                                    <img
+                                        src={prop.image_url || "/images/defaultProperty.png"}
+                                        alt={prop.name}
+                                        className={`property-image ${!isAvailable ? 'unavailable-filter' : ''}`}
+                                    />
+                                    <div className="type-badge">{prop.type}</div>
+                                    {!isAvailable && (
+                                        <div className="status-overlay">
+                                            <span className="status-label">{prop.status}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="card-body">
+                                    <h3 className="property-name">{prop.name}</h3>
+                                    <p className="property-location">
+                                        <MapPin size={16} /> {prop.location_address}
+                                    </p>
+                                    <div className="card-footer">
+                                        <div className="price-display">
+                                            <span className="price-amount">₱{Number(prop.price_monthly).toLocaleString()}</span>
+                                            <span className="price-period">/mo</span>
+                                        </div>
+                                        <button className="view-details-btn">View</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
         </div>
     );

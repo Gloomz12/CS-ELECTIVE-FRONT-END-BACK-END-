@@ -20,7 +20,7 @@ $userId = $data['user_id'] ?? null;
 
 if ($userId) {
     try {
-        $stmt = $conn->prepare("SELECT id, username, email, balance, created_at FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT id, username, email, balance, created_at, profile_picture FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
