@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Info, Mail } from 'lucide-react';
 
+// Hooks
+import useFetchUser from '../hooks/fetchUser.jsx';
 
 
 export default function InquireProperty() {
     const location = useLocation();
     const navigate = useNavigate();
+    const user = useFetchUser() || {};
 
 
     const property = location.state?.currentProperty;
