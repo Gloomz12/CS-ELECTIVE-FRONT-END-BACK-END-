@@ -992,7 +992,6 @@
 
 .listings-grid {
   display: grid;
-  /* "auto-fill" creates as many columns as will fit, at least 280px wide */
   grid-template-columns: repeat(4, minmax(280px, 1fr));
   gap: 24px;
 }
@@ -1518,7 +1517,7 @@
   margin-top: 16px;
 }
 
-/* Property Inquirty  ==================================================================================================*/
+/* Property Inquiry  ==================================================================================================*/
 .inquiry-wrapper {
   background-color: #f8fafc;
   height: 100%;
@@ -1696,4 +1695,439 @@
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Rentings Page ==================================================================================================*/
+.page-layout {
+    display: flex;
+    height: 100vh;
+    background-color: #f8fafc;
+}
+
+.page-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.page-content {
+    padding: 32px;
+}
+
+.rentings-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.rentings-title {
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.rentings-empty {
+    text-align: center;
+    padding: 80px 20px;
+    background-color: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.rentings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.rentings-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.rentings-card:hover {
+    border-color: #5eead4;
+}
+
+@media (min-width: 768px) {
+    .rentings-card {
+        flex-direction: row;
+    }
+}
+
+.rentings-card-image-wrap {
+    width: 100%;
+    height: 192px;
+    background-color: #f1f5f9;
+    flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+    .rentings-card-image-wrap {
+        width: 192px;
+    }
+}
+
+.rentings-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rentings-card-content {
+    padding: 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.rentings-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.rentings-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.rentings-badge {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.rentings-badge-pending {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.rentings-badge-uptodate {
+    background-color: #d1fae5;
+    color: #047857;
+}
+
+.rentings-card-subtitle {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 0 0 16px 0;
+}
+
+.rentings-rates-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.rentings-rate-box {
+    padding: 8px 16px;
+    border-radius: 8px;
+}
+
+.rentings-rate-normal {
+    background-color: #f8fafc;
+}
+
+.rentings-rate-danger {
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+}
+
+.rentings-rate-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 0 0 4px 0;
+}
+
+.rentings-rate-value {
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.rentings-rate-danger-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ef4444;
+    margin: 0 0 4px 0;
+}
+
+.rentings-rate-danger-value {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: #b91c1c;
+    margin: 0;
+}
+
+/* Leasing ==================================================================================================*/
+.leasing-information-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.leasing-information-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.leasing-information-back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.leasing-information-title {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.leasing-information-body {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.leasing-information-status-wrapper {
+    margin-bottom: 1.5rem;
+}
+
+.leasing-information-status-badge {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.leasing-information-status-active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.leasing-information-status-inactive {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.leasing-information-member-since {
+    color: #6b7280;
+    margin-top: 0.5rem;
+}
+
+.leasing-information-banner {
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    gap: 1rem;
+}
+
+.leasing-information-banner-overdue {
+    background-color: #fef2f2;
+    border: 1px solid #fca5a5;
+}
+
+.leasing-information-icon-overdue {
+    color: #ef4444;
+}
+
+.leasing-information-banner-title-overdue {
+    color: #991b1b;
+    margin: 0;
+}
+
+.leasing-information-banner-desc-overdue {
+    margin: 4px 0;
+    color: #b91c1c;
+}
+
+.leasing-information-banner-total-overdue {
+    font-weight: bold;
+    color: #991b1b;
+    margin: 0;
+}
+
+.leasing-information-banner-uptodate {
+    background-color: #f0fdf4;
+    border: 1px solid #86efac;
+}
+
+.leasing-information-icon-uptodate {
+    color: #22c55e;
+}
+
+.leasing-information-banner-title-uptodate {
+    color: #166534;
+    margin: 0;
+}
+
+.leasing-information-banner-desc-uptodate {
+    margin: 4px 0;
+    color: #15803d;
+}
+
+.leasing-information-banner-advance {
+    background-color: #eff6ff;
+    border: 1px solid #93c5fd;
+}
+
+.leasing-information-icon-advance {
+    color: #2563eb;
+}
+
+.leasing-information-banner-title-advance {
+    color: #1e40af;
+    margin: 0;
+}
+
+.leasing-information-banner-desc-advance {
+    margin: 4px 0;
+    color: #1d4ed8;
+}
+
+.leasing-information-bold {
+    font-weight: bold;
+}
+
+.leasing-information-data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.leasing-information-data-card {
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.leasing-information-data-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+.leasing-information-data-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.leasing-information-value-blue {
+    color: #2563eb;
+}
+
+.leasing-information-payment-card {
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    border-radius: 12px;
+}
+
+.leasing-information-payment-title {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.leasing-information-payment-details {
+    margin: 1.5rem 0;
+}
+
+.leasing-information-wallet-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.leasing-information-wallet-label {
+    color: #6b7280;
+}
+
+.leasing-information-wallet-amount {
+    font-weight: bold;
+}
+
+.leasing-information-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 1rem 0;
+}
+
+.leasing-information-amount-label {
+    display: block;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.leasing-information-amount-input {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+}
+
+.leasing-information-advance-label {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+}
+
+.leasing-information-advance-text {
+    font-size: 0.85rem;
+}
+
+.leasing-information-submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.leasing-information-submit-btn:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.leasing-information-error-text {
+    color: #ef4444;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    text-align: center;
 }

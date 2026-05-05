@@ -77,7 +77,7 @@ export default function Sidebar({ activeTab }) {
 
                 <button
                     onClick={() => navigate('/main/rentings')}
-                    className={`nav-btn ${activeTab === 'rentings' ? 'active' : ''}`}
+                    className={`nav-btn ${activeTab === 'rentings' || activeTab === 'leasing-information' ? 'active' : ''}`}
                 >
                     <Calendar size={20} />
                     <span className="nav-label">My Rentings</span>
