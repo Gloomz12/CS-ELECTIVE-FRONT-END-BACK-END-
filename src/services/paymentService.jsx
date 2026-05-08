@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost/api/rentings';
+const API_BASE_URL = '';
 
-export const paymentService = {
+export const PaymentService = {
     processPropertyPayment: async (paymentData) => {
         try {
-            const response = await axios.post(`${API_BASE_URL}/processPayment.php`, paymentData);
+            const response = await axios.post(`http://localhost/api/rentings/processPayment.php`, paymentData);
+            console.log("payment success")
             return response.data;
         } catch (error) {
             console.error("Payment Service Error:", error);

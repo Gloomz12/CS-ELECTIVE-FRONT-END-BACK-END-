@@ -2,18 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 // Hooks
-import { useListenBalanceUpdate } from './updateBalance.jsx';
+import { BALANCE_UPDATE_EVENT } from '../hooks/updateBalance.jsx';
 
 export default function useFetchUser() {
     const [user, setUser] = useState({});
-    
+
     const fetchUserProfile = useCallback(async () => {
         const userId = localStorage.getItem("userId");
-
-        if (!userId) {
-            window.location.href = '/login';
-            return;
-        }
+        if (!userId) return;
 
         try {
             const response = await axios.post("http://localhost/api/users/profile.php", {
@@ -22,9 +18,6 @@ export default function useFetchUser() {
 
             if (response.data.success) {
                 setUser(response.data.data);
-                console.log("User data updated:", response.data.data);
-            } else {
-                console.error("Failed to load user:", response.data.message);
             }
         } catch (err) {
             console.error("Error fetching profile:", err);
@@ -35,7 +28,15 @@ export default function useFetchUser() {
         fetchUserProfile();
     }, [fetchUserProfile]);
 
-    useListenBalanceUpdate(fetchUserProfile);
+    useEffect(() => {
+        window.addEventListener(BALANCE_UPDATE_EVENT, fetchUserProfile);
+
+        return () => {
+            window.removeEventListener(BALANCE_UPDATE_EVENT, fetchUserProfile);
+        };
+    }, [fetchUserProfile]);
 
     return user;
+
+
 }

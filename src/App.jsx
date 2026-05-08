@@ -20,6 +20,10 @@ import Rentings from "./pages/rentings";
 import LeasingInformation from "./pages/leasingInformation";
 
 import MyProperties from "./pages/myProperties";
+import AddProperty from "./pages/addProperty";
+import InquiriesList from "./pages/inquiriesList";
+import MyPropertyDetailsView from "./pages/myPropertyDetailsView";
+import EditProperty from "./pages/editProperty";
 
 
 
@@ -55,12 +59,18 @@ function App() {
 
 
           <Route path="my-properties" element={<MyProperties />} />
+          <Route path="my-properties/details/:propertyName" element={<MyPropertyDetailsView />} />
+          <Route path="my-properties/inquires-list" element={<InquiriesList />} />
+          <Route path="my-properties/add-property" element={<AddProperty />} />
+          <Route path="my-properties/details/:propertyName/edit-information" element={<EditProperty />} />
+
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
     </BrowserRouter>
+
   );
 }
 

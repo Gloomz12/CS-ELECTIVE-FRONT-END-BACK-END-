@@ -15,6 +15,9 @@ $ownerId    = $data['owner_id'] ?? null;
 $rentingId  = $data['renting_id'] ?? null;
 $amount     = (float)($data['amount'] ?? 0);
 $monthsPaid = (int)($data['months_paid'] ?? 0);
+$monthsPending = $data['months_pending'] ?? 0;
+$status = $data['status'] ?? null;
+$pendingPayment = $data['pending_payment'] ?? null;
 
 if (!$tenantId || !$ownerId || !$rentingId || $amount <= 0) {
     echo json_encode(["success" => false, "message" => "Invalid payment data. Missing required fields."]);
@@ -23,7 +26,7 @@ if (!$tenantId || !$ownerId || !$rentingId || $amount <= 0) {
 
 try {
     $connection = new Connection();
-    /** @var PDO $db */ 
+    /** @var PDO $db */
     $db = $connection->connect();
 
     if (!$db) {
@@ -47,15 +50,24 @@ try {
     $add->execute([$amount, $ownerId]);
 
     $updateRenting = $db->prepare("
-        UPDATE rentings 
-        SET total_paid = total_paid + ?
-        WHERE id = ?
-    ");
-    $updateRenting->execute([$amount, $rentingId]);
+    UPDATE rentings 
+    SET total_paid = total_paid + ?,
+        months_pending = ?,
+        status = ?,
+        pending_payment= ?
+    WHERE id = ?
+");
+
+    $updateRenting->execute([
+        $amount,
+        $monthsPending,
+        $status,
+        $pendingPayment,
+        $rentingId
+    ]);
 
     $db->commit();
-    echo json_encode(["success" => true, "message" => "Payment successful. Balance transferred to owner."]);
-
+    echo json_encode(["success" => true, "message" => "Payment successful. Balance transferred to $ownerId."]);
 } catch (Exception $e) {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();

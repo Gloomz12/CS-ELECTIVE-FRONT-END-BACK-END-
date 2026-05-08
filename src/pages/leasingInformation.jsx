@@ -1,16 +1,21 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+// Icons
 import { ChevronLeft, Info, CreditCard, CheckCircle, AlertTriangle, Calendar, Hash, Activity } from 'lucide-react';
-import { paymentService } from '../services/paymentService.jsx';
-import { UseTriggerBalanceUpdate } from '../hooks/updateBalance.jsx';
+
+// Services
+import { PaymentService } from '../services/paymentService.jsx';
+
+// Hooks
 import useFetchUser from '../hooks/fetchUser.jsx';
+import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
 
 export default function LeasingInformation() {
     const navigate = useNavigate();
     const location = useLocation();
     const { propertyName } = useParams();
     const r = location.state?.renting;
-    const triggerBalanceUpdate = UseTriggerBalanceUpdate();
 
     const currentUser = useFetchUser();
     const [walletBalance, setWalletBalance] = useState(0);
@@ -29,6 +34,8 @@ export default function LeasingInformation() {
 
         const monthlyRate = parseFloat(r.monthlyRate || r.monthly_rate || 0);
         const totalPaid = parseFloat(r.totalPaid || r.total_paid || 0);
+        const totalDue = parseFloat(r.totalDue || r.total_due || 0);
+
         const startDateObj = new Date(r.startDate || r.start_date);
         const currentDateObj = new Date();
 
@@ -45,10 +52,15 @@ export default function LeasingInformation() {
         const monthsPending = monthsElapsed - monthsPaidTotal;
         const pendingPayment = Math.max(0, monthsPending * monthlyRate);
 
+        const remainingBalance = Math.max(0, totalDue - totalPaid);
+        const isFullyPaid = totalPaid >= totalDue && totalDue > 0;
+
         return {
             ...r,
             monthlyRate,
             totalPaid,
+            totalDue,
+            remainingBalance,
             monthsPending,
             pendingPayment,
             paidUntilDate,
@@ -56,14 +68,24 @@ export default function LeasingInformation() {
             formattedStartDate: startDateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
             isOverdue: monthsPending > 0,
             isUpToDate: monthsPending === 0,
-            isAdvance: monthsPending < 0
+            isAdvance: monthsPending < 0,
+            isFullyPaid
         };
     }, [r]);
 
     useEffect(() => {
         if (leaseData) {
-            const advanceAmount = advance ? leaseData.monthlyRate : 0;
-            setAmountToPay(leaseData.pendingPayment + advanceAmount);
+            let calculatedAmount = leaseData.pendingPayment;
+
+            if (advance) {
+                calculatedAmount += leaseData.monthlyRate;
+            }
+
+            if (calculatedAmount > leaseData.remainingBalance) {
+                calculatedAmount = leaseData.remainingBalance;
+            }
+
+            setAmountToPay(calculatedAmount);
         }
     }, [advance, leaseData]);
 
@@ -97,21 +119,26 @@ export default function LeasingInformation() {
         setIsProcessing(true);
         const monthsPayingFor = Math.floor(amountToPay / leaseData.monthlyRate);
 
-        const ownerId = leaseData.ownerId;
+        console.log(leaseData)
 
         const paymentData = {
-            tenant_id: leaseData.tenantId || leaseData.tenant_id,
-            owner_id: ownerId,
+            tenant_id: leaseData.tenantId,
+            owner_id: leaseData.ownerId,
             renting_id: leaseData.id,
+            months_pending: leaseData.monthsPending,
+            status: leaseData.liveStatus,
+            pending_payment: leaseData.pendingPayment,
             amount: amountToPay,
             months_paid: monthsPayingFor
         };
 
-        const result = await paymentService.processPropertyPayment(paymentData);
+        const result = await PaymentService.processPropertyPayment(paymentData);
 
         if (result.success) {
             alert("Payment successful!");
+
             triggerBalanceUpdate();
+
             navigate('/main/rentings');
         } else {
             alert(`Payment Failed: ${result.message}`);
@@ -154,43 +181,57 @@ export default function LeasingInformation() {
                                         </p>
                                     </div>
 
-                                    {leaseData.isOverdue && (
-                                        <div id="leasing-information-banner-overdue" className="leasing-information-banner leasing-information-banner-overdue">
-                                            <AlertTriangle className="leasing-information-icon-overdue" size={24} />
+                                    {leaseData.isFullyPaid ? (
+                                        <div id="leasing-information-banner-fully-paid" className="leasing-information-banner leasing-information-banner-fully-paid">
+                                            <CheckCircle className="leasing-information-icon-fully-paid" size={24} />
                                             <div className="leasing-information-banner-text-wrapper">
-                                                <h4 className="leasing-information-banner-title-overdue">Payment Required</h4>
-                                                <p className="leasing-information-banner-desc-overdue">
-                                                    You have <strong className="leasing-information-bold">{leaseData.monthsPending}</strong> pending months.
-                                                </p>
-                                                <p className="leasing-information-banner-total-overdue">
-                                                    Total Arrears: ₱{leaseData.pendingPayment.toLocaleString()}
+                                                <h4 className="leasing-information-banner-title-fully-paid">Contract Fully Paid</h4>
+                                                <p className="leasing-information-banner-desc-fully-paid">
+                                                    You have completed all payments for this lease contract.
                                                 </p>
                                             </div>
                                         </div>
-                                    )}
+                                    ) : (
+                                        <>
+                                            {leaseData.isOverdue && (
+                                                <div id="leasing-information-banner-overdue" className="leasing-information-banner leasing-information-banner-overdue">
+                                                    <AlertTriangle className="leasing-information-icon-overdue" size={24} />
+                                                    <div className="leasing-information-banner-text-wrapper">
+                                                        <h4 className="leasing-information-banner-title-overdue">Payment Required</h4>
+                                                        <p className="leasing-information-banner-desc-overdue">
+                                                            You have <strong className="leasing-information-bold">{leaseData.monthsPending}</strong> pending months.
+                                                        </p>
+                                                        <p className="leasing-information-banner-total-overdue">
+                                                            Total Pending Payments: ₱{leaseData.pendingPayment.toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                    {leaseData.isUpToDate && (
-                                        <div id="leasing-information-banner-uptodate" className="leasing-information-banner leasing-information-banner-uptodate">
-                                            <CheckCircle className="leasing-information-icon-uptodate" size={24} />
-                                            <div className="leasing-information-banner-text-wrapper">
-                                                <h4 className="leasing-information-banner-title-uptodate">Fully Paid</h4>
-                                                <p className="leasing-information-banner-desc-uptodate">
-                                                    Your rent is covered until <strong className="leasing-information-bold">{leaseData.formattedPaidUntil}</strong>.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
+                                            {leaseData.isUpToDate && (
+                                                <div id="leasing-information-banner-uptodate" className="leasing-information-banner leasing-information-banner-uptodate">
+                                                    <CheckCircle className="leasing-information-icon-uptodate" size={24} />
+                                                    <div className="leasing-information-banner-text-wrapper">
+                                                        <h4 className="leasing-information-banner-title-uptodate">Fully Paid</h4>
+                                                        <p className="leasing-information-banner-desc-uptodate">
+                                                            Your rent is covered until <strong className="leasing-information-bold">{leaseData.formattedPaidUntil}</strong>.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                    {leaseData.isAdvance && (
-                                        <div id="leasing-information-banner-advance" className="leasing-information-banner leasing-information-banner-advance">
-                                            <CheckCircle className="leasing-information-icon-advance" size={24} />
-                                            <div className="leasing-information-banner-text-wrapper">
-                                                <h4 className="leasing-information-banner-title-advance">Advance Paid</h4>
-                                                <p className="leasing-information-banner-desc-advance">
-                                                    You are ahead of schedule. Rent is covered until <strong className="leasing-information-bold">{leaseData.formattedPaidUntil}</strong>.
-                                                </p>
-                                            </div>
-                                        </div>
+                                            {leaseData.isAdvance && (
+                                                <div id="leasing-information-banner-advance" className="leasing-information-banner leasing-information-banner-advance">
+                                                    <CheckCircle className="leasing-information-icon-advance" size={24} />
+                                                    <div className="leasing-information-banner-text-wrapper">
+                                                        <h4 className="leasing-information-banner-title-advance">Advance Paid</h4>
+                                                        <p className="leasing-information-banner-desc-advance">
+                                                            You are ahead of schedule. Rent is covered until <strong className="leasing-information-bold">{leaseData.formattedPaidUntil}</strong>.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     <div id="leasing-information-data-grid" className="leasing-information-data-grid">
@@ -215,7 +256,7 @@ export default function LeasingInformation() {
                                                 <Activity size={14} /> Total Contract Value
                                             </div>
                                             <div className="leasing-information-data-value">
-                                                ₱{parseFloat(leaseData.totalDue || leaseData.total_due || 0).toLocaleString()}
+                                                ₱{leaseData.totalDue.toLocaleString()}
                                             </div>
                                         </div>
                                         <div className="leasing-information-data-card">
@@ -248,7 +289,15 @@ export default function LeasingInformation() {
                                                 className="leasing-information-amount-input"
                                                 type="number"
                                                 value={amountToPay}
-                                                onChange={e => setAmountToPay(Number(e.target.value))}
+                                                max={leaseData.remainingBalance}
+                                                disabled={leaseData.isFullyPaid}
+                                                onChange={e => {
+                                                    let val = Number(e.target.value);
+                                                    if (val > leaseData.remainingBalance) {
+                                                        val = leaseData.remainingBalance;
+                                                    }
+                                                    setAmountToPay(val);
+                                                }}
                                             />
                                         </div>
 
@@ -258,6 +307,7 @@ export default function LeasingInformation() {
                                                 className="leasing-information-advance-checkbox"
                                                 type="checkbox"
                                                 checked={advance}
+                                                disabled={leaseData.isFullyPaid || (leaseData.remainingBalance <= amountToPay && !advance)}
                                                 onChange={e => setAdvance(e.target.checked)}
                                             />
                                             <span className="leasing-information-advance-text">
@@ -267,14 +317,14 @@ export default function LeasingInformation() {
 
                                         <button
                                             id="leasing-information-submit-btn"
-                                            className="leasing-information-submit-btn"
+                                            className={`leasing-information-submit-btn ${leaseData.isFullyPaid ? 'leasing-information-btn-fully-paid' : ''}`}
                                             onClick={handlePayment}
-                                            disabled={amountToPay <= 0 || amountToPay > walletBalance || isProcessing}
+                                            disabled={leaseData.isFullyPaid || amountToPay <= 0 || amountToPay > walletBalance || isProcessing}
                                         >
-                                            {isProcessing ? 'Processing...' : `Pay ₱${amountToPay.toLocaleString()}`}
+                                            {leaseData.isFullyPaid ? 'Fully Paid' : isProcessing ? 'Processing...' : `Pay ₱${amountToPay.toLocaleString()}`}
                                         </button>
 
-                                        {amountToPay > walletBalance && (
+                                        {amountToPay > walletBalance && !leaseData.isFullyPaid && (
                                             <p id="leasing-information-error-text" className="leasing-information-error-text">
                                                 Insufficient funds in wallet.
                                             </p>

@@ -1,12 +1,26 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom'; // Added useParams
+
+// Icons
 import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react';
 
+// Hooks
+import useFetchUser from '../hooks/fetchUser';
+import UseFetchProperties from '../hooks/fetchProperties';
+
 export default function PropertyDetailsView() {
+    const { propertyName } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+    const user = useFetchUser();
 
-    const property = location.state?.propertyData;
+    const allProperties = UseFetchProperties();
+    const locationProperty = location.state?.propertyData;
+
+    const property = allProperties.find(p => {
+        const formattedName = p.name.toLowerCase().replace(/\s+/g, '-');
+        return formattedName === propertyName;
+    }) || locationProperty;
 
     if (!property) {
         return (
@@ -16,9 +30,9 @@ export default function PropertyDetailsView() {
             </div>
         );
     }
-    console.log("Property Details:", property);
 
     const isUnavailable = property.status === 'occupied' || property.status === 'unavailable';
+    const currentOwner = property.owner_id === user.id;
 
     let amenitiesList = [];
     try {
@@ -51,7 +65,6 @@ export default function PropertyDetailsView() {
     return (
         <div id="property-view-page" className="property-view-wrapper">
             <div className="property-view-card-container">
-
                 <header className="property-view-header">
                     <button onClick={() => navigate('/main/listings')} className="property-view-icon-btn">
                         <ChevronLeft size={20} />
@@ -70,13 +83,12 @@ export default function PropertyDetailsView() {
                         </div>
                     </div>
 
-
-                    <div className={`property-view-image-grid ${imageslist && imageslist.length === 1 ? 'grid-1' :
-                            imageslist && imageslist.length === 2 ? 'grid-2' :
-                                imageslist && imageslist.length === 3 ? 'grid-3' :
-                                    imageslist && imageslist.length >= 4 ? 'grid-4' : ''
+                    <div className={`property-view-image-grid ${imageslist.length === 1 ? 'grid-1' :
+                        imageslist.length === 2 ? 'grid-2' :
+                            imageslist.length === 3 ? 'grid-3' :
+                                imageslist.length >= 4 ? 'grid-4' : ''
                         }`}>
-                        {imageslist && imageslist.length > 0 ? (
+                        {imageslist.length > 0 ? (
                             imageslist.slice(0, 5).map((img, index) => (
                                 <div
                                     key={index}
@@ -90,15 +102,7 @@ export default function PropertyDetailsView() {
                                 <div className="property-view-placeholder">No Images Available</div>
                             </div>
                         )}
-
-                        {imageslist && imageslist.length > 0 && imageslist.length < 5 &&
-                            Array.from({ length: 5 - imageslist.length }).map((_, i) => (
-                                ""
-                            ))
-                        }
                     </div>
-
-
 
                     <div className="property-view-layout-grid">
                         <div className="property-view-left-column">
@@ -142,17 +146,11 @@ export default function PropertyDetailsView() {
                                 <p className="property-view-landlord-sub">Property Landlord</p>
 
                                 <button
-                                    disabled={isUnavailable}
-                                    className={`property-view-action-button ${isUnavailable ? 'property-view-btn-disabled' : 'property-view-btn-active'}`}
-                                    key={property.id}
+                                    disabled={isUnavailable || currentOwner}
+                                    className={`property-view-action-button ${isUnavailable || currentOwner ? 'property-view-btn-disabled' : 'property-view-btn-active'}`}
                                     onClick={() => navigate(`/main/properties/${property.name.toLowerCase().replace(/\s+/g, '-')}/inquire`, { state: { currentProperty: property } })}
                                 >
-                                    {isUnavailable
-                                        ? 'Currently Unavailable'
-                                        : `Inquire Now - ₱${Number(property.price_monthly).toLocaleString()}`
-                                    }
-
-
+                                    {isUnavailable ? 'Currently Unavailable' : currentOwner ? 'Invalid Action' : `Inquire Now - ₱${Number(property.price_monthly).toLocaleString()}`}
                                 </button>
                             </div>
                         </div>

@@ -12,28 +12,35 @@ export default function Rentings() {
         if (!rentings) return [];
 
         return rentings.map(r => {
-            const startDateObj = new Date(r.startDate);
+            const startDateObj = new Date(r.startDate || r.start_date);
             const currentDateObj = new Date();
-            const monthlyRate = parseFloat(r.monthlyRate || 0);
-            const totalPaid = parseFloat(r.totalPaid || 0);
-            console.log(r)
+            const monthlyRate = parseFloat(r.monthlyRate || r.monthly_rate || 0);
+            const totalPaid = parseFloat(r.totalPaid || r.total_paid || 0);
+            const totalDue = parseFloat(r.totalDue || r.total_due || 0);
+
+            console.log(r);
+
             let monthsElapsed = (currentDateObj.getFullYear() - startDateObj.getFullYear()) * 12 + (currentDateObj.getMonth() - startDateObj.getMonth());
 
             if (currentDateObj.getDate() < startDateObj.getDate()) {
                 monthsElapsed--;
             }
             monthsElapsed = Math.max(0, monthsElapsed);
-            console.log(monthsElapsed)
 
             const monthsCoveredByPayment = monthlyRate > 0 ? Math.floor(totalPaid / monthlyRate) : 0;
 
             const calculatedMonthsPending = monthsElapsed - monthsCoveredByPayment;
             const calculatedPendingPayment = calculatedMonthsPending * monthlyRate;
 
+            const isFullyPaid = totalPaid >= totalDue && totalDue > 0;
+
             let statusLabel = "Up to Date";
             let statusClass = "rentings-badge-uptodate";
 
-            if (calculatedMonthsPending > 0) {
+            if (isFullyPaid) {
+                statusLabel = "Fully Paid";
+                statusClass = "rentings-badge-fullypaid";
+            } else if (calculatedMonthsPending > 0) {
                 statusLabel = "Overdue";
                 statusClass = "rentings-badge-pending";
             } else if (calculatedMonthsPending < 0) {
@@ -45,6 +52,7 @@ export default function Rentings() {
                 ...r,
                 monthsPending: calculatedMonthsPending,
                 pendingPayment: Math.max(0, calculatedPendingPayment),
+                isFullyPaid: isFullyPaid,
                 liveStatus: statusLabel,
                 statusClass: statusClass
             };
@@ -94,6 +102,12 @@ export default function Rentings() {
                                             <p className="rentings-card-subtitle">
                                                 Lease Term: {renting.leaseTerm || renting.lease_term} months • Started {renting.startDate || renting.start_date}
                                             </p>
+                                            <p className="rentings-card-subtitle">
+                                                Started {renting.startDate || renting.start_date}
+                                            </p>
+                                            <p className="rentings-card-subtitle">
+                                                Room Occupancy : {renting.unitOccupancy}
+                                            </p>
 
                                             <div className="rentings-rates-row">
                                                 <div className="rentings-rate-box rentings-rate-normal">
@@ -101,12 +115,12 @@ export default function Rentings() {
                                                     <p className="rentings-rate-value">₱{parseFloat(renting.monthlyRate || renting.monthly_rate).toLocaleString()}</p>
                                                 </div>
 
-                                                <div className={`rentings-rate-box ${renting.monthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'}`}>
+                                                <div className={`rentings-rate-box ${renting.isFullyPaid ? 'rentings-rate-fullypaid' : renting.monthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'}`}>
                                                     <p className="rentings-rate-label">
-                                                        {renting.monthsPending > 0 ? `Amount Due (${renting.monthsPending} mo)` : 'Balance'}
+                                                        {renting.isFullyPaid ? 'Contract Status' : renting.monthsPending > 0 ? `Amount Due (${renting.monthsPending} mo)` : 'Balance'}
                                                     </p>
                                                     <p className="rentings-rate-value">
-                                                        ₱{renting.pendingPayment.toLocaleString()}
+                                                        {renting.isFullyPaid ? 'Fully Paid' : `₱${renting.pendingPayment.toLocaleString()}`}
                                                     </p>
                                                 </div>
                                             </div>

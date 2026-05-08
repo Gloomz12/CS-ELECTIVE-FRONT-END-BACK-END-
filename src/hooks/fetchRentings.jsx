@@ -33,7 +33,8 @@ export default function useFetchRentings() {
                         totalDue: parseFloat(r.total_due),
                         status: r.status,
                         imageUrl: r.image_url,
-                        ownerId: r.owner_id
+                        ownerId: r.owner_id,
+                        unitOccupancy: r.unit_occupancy
                     }));
                     setRentings(formattedData);
                 }

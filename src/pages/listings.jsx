@@ -8,7 +8,7 @@ import Sidebar from '../components/sidebar.jsx';
 
 //HOOKS
 import useFetchUser from '../hooks/fetchUser.jsx';
-import useFetchProperties from '../hooks/fetchProperties.jsx';
+import UseFetchProperties from '../hooks/fetchProperties.jsx';
 
 //ICONS
 import { MapPin } from 'lucide-react';
@@ -16,7 +16,7 @@ import { MapPin } from 'lucide-react';
 export default function Listings() {
 
     const navigate = useNavigate();
-    const properties = useFetchProperties();
+    const properties = UseFetchProperties();
     console.log(properties);
     const user = useFetchUser();
 
@@ -82,7 +82,8 @@ export default function Listings() {
 
                 <div className="listings-grid">
                     {sortedProperties.map(prop => {
-                        const isAvailable = prop.status !== 'occupied' && prop.status !== 'unavailable';
+                        const isAvailable = prop.status !== 'unavailable';
+                        const isOccupied = prop.status === 'occupied'
                         const urlName = prop.name.toLowerCase().replace(/\s+/g, '-');
                         return (
                             <div
@@ -94,12 +95,17 @@ export default function Listings() {
                                     <img
                                         src={prop.image_url || "/images/defaultProperty.png"}
                                         alt={prop.name}
-                                        className={`property-image ${!isAvailable ? 'unavailable-filter' : ''}`}
+                                        className={`property-image ${isAvailable ? '' : isOccupied ? 'occupied-filter' : 'unavailable-filter'}`}
                                     />
                                     <div className="type-badge">{prop.type}</div>
+                                    {isOccupied && (
+                                        <div className="status-overlay">
+                                            <span className="status-occupied">{prop.status}</span>
+                                        </div>
+                                    )}
                                     {!isAvailable && (
                                         <div className="status-overlay">
-                                            <span className="status-label">{prop.status}</span>
+                                            <span className="status-unavailable">{prop.status}</span>
                                         </div>
                                     )}
                                 </div>

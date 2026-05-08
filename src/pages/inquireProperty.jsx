@@ -5,12 +5,14 @@ import { ChevronLeft, Info, Mail } from 'lucide-react';
 // Hooks
 import useFetchUser from '../hooks/fetchUser.jsx';
 
+// Services
+import { sendInquiry } from '../services/sendInquiry.jsx';
+
 
 export default function InquireProperty() {
     const location = useLocation();
     const navigate = useNavigate();
     const user = useFetchUser() || {};
-
 
     const property = location.state?.currentProperty;
 
@@ -43,10 +45,25 @@ Sincerely,
 ${applicantName}
 Date: ${new Date().toLocaleDateString()}`;
 
-    const handleSend = () => {
-        alert('Inquiry message sent to the landlord!');
-        navigate(-1);
+    const handleSend = async () => {
+
+        const inquiryData = {
+            property_id: property.id,
+            tenant_id: user.id,
+            lease_term_months: leaseTerm,
+            message: generatedMessage
+        };
+
+        const result = await sendInquiry(inquiryData);
+
+        if (result.success) {
+            alert('Inquiry message sent to the landlord!');
+            navigate(-1);
+        } else {
+            alert('Failed to send inquiry: ' + result.message);
+        }
     };
+
 
     return (
         <div id="inquiry-page" className="inquiry-wrapper">
@@ -113,4 +130,4 @@ Date: ${new Date().toLocaleDateString()}`;
             </div>
         </div>
     );
-}
+};

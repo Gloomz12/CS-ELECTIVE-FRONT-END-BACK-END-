@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-export default function useFetchProperties() {
+export default function UseFetchProperties() {
     const [properties, setProperties] = useState([]); 
 
     useEffect(() => {
