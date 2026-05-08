@@ -12,6 +12,12 @@ export default function Sidebar({ activeTab }) {
     const navigate = useNavigate();
     const user = useFetchUser() || {};
 
+    const displayUsername = user.username 
+        ? user.username.length > 15 
+            ? `${user.username.substring(0, 15)}...` 
+            : user.username 
+        : "Guest User";
+
     const handleLogout = async () => {
         try {
             await axios.get('http://localhost/api/auth/logout.php');
@@ -35,14 +41,16 @@ export default function Sidebar({ activeTab }) {
                 <div className="profile-upper">
                     <div className="avatar-wrapper">
                         <img
-                            src={user.profPic || "/images/defaultProfPic.png"}
+                            src={user.profile_picture || "/images/defaultProfPic.png"} // Fixed to use profile_picture from DB
                             alt="User"
                             className="main-avatar"
+                            onClick={() => navigate('/main/user-settings')}
                         />
                         <div className="online-indicator"></div>
                     </div>
                     <div className="profile-details">
-                        <p className="profile-name">{user.username || "Guest User"}</p>
+                        {/* Using the truncated username here */}
+                        <p className="profile-name" title={user.username}>{displayUsername}</p>
                     </div>
                 </div>
 
@@ -65,7 +73,6 @@ export default function Sidebar({ activeTab }) {
                     <Home size={20} />
                     <span className="nav-label">Homepage</span>
                 </button>
-
 
                 <button
                     onClick={() => navigate('/main/listings')}

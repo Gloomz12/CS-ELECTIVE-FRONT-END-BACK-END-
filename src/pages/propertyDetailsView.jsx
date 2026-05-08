@@ -22,6 +22,8 @@ export default function PropertyDetailsView() {
         return formattedName === propertyName;
     }) || locationProperty;
 
+console.log(property)
+
     if (!property) {
         return (
             <div className="property-view-not-found">
@@ -142,7 +144,7 @@ export default function PropertyDetailsView() {
                                     <div className="property-view-avatar-badge" title="Verified Landlord"></div>
                                 </div>
 
-                                <h4 className="property-view-landlord-name">Owner: {property.username}</h4>
+                                <h4 className="property-view-landlord-name">Owner: {property.full_name}</h4>
                                 <p className="property-view-landlord-sub">Property Landlord</p>
 
                                 <button

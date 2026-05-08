@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 // Hooks
-import { BALANCE_UPDATE_EVENT } from '../hooks/updateBalance.jsx';
+import { BALANCE_UPDATE_EVENT } from './updateBalance.jsx';
+import { USER_UPDATE_EVENT } from './updateUser.jsx'; 
 
 export default function useFetchUser() {
     const [user, setUser] = useState({});
@@ -30,13 +31,13 @@ export default function useFetchUser() {
 
     useEffect(() => {
         window.addEventListener(BALANCE_UPDATE_EVENT, fetchUserProfile);
+        window.addEventListener(USER_UPDATE_EVENT, fetchUserProfile); 
 
         return () => {
             window.removeEventListener(BALANCE_UPDATE_EVENT, fetchUserProfile);
+            window.removeEventListener(USER_UPDATE_EVENT, fetchUserProfile); 
         };
     }, [fetchUserProfile]);
 
     return user;
-
-
 }

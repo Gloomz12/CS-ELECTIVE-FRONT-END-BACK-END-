@@ -29,9 +29,9 @@ export default function InquireProperty() {
         );
     }
 
-    const applicantName = user.legalName || user.username || "[Your Name]";
+    const applicantName = user.full_name;
 
-    const generatedMessage = `Dear ${property.username || 'Landlord'},
+    const generatedMessage = `Dear ${property.full_name || 'Landlord'},
 
 I hope this message finds you well. My name is ${applicantName}, and I am writing to formally express my interest in renting your property, ${property.name}, as listed on Dorm Dash.
 

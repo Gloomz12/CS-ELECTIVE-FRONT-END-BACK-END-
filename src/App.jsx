@@ -10,6 +10,8 @@ import Landing from "./pages/landing";
 import Main from "./pages/main";
 
 // Child Pages
+import UserSettings from "./pages/userSettings";
+
 import Home from "./pages/homepage";
 
 import Listings from "./pages/listings";
@@ -48,6 +50,8 @@ function App() {
 
           {/* CHILD ROUTES */}
           <Route index element={<Navigate to="home" replace />} />
+          <Route path="user-settings" element={<UserSettings />} />
+
           <Route path="home" element={<Home />} />
 
           <Route path="rentings" element={<Rentings />} />
