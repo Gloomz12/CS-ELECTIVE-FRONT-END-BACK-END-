@@ -8,10 +8,11 @@ import { Wallet, Building, Users, Inbox, Calendar, FileText, Send, ArrowRight, A
 // Hooks
 import useFetchUser from '../hooks/fetchUser';
 import useFetchProperties from '../hooks/fetchProperties';
-import useFetchRentings from '../hooks/fetchRentings'; 
+import useFetchRentings from '../hooks/fetchRentings';
+import useManageLeasePendings from '../hooks/useManageLeasePendings';
 
 // Services 
-import { fetchInquiries } from '../services/handleInquiries'; 
+import { fetchInquiries } from '../services/handleInquiries';
 
 export default function Home() {
     const navigate = useNavigate();
@@ -29,6 +30,28 @@ export default function Home() {
         return allProperties?.filter(prop => String(prop.owner_id) === String(userId)) || [];
     }, [allProperties, userId]);
 
+    const processedLandlordTenants = useManageLeasePendings(useMemo(() => {
+        return allLandlordTenants.map(t => ({
+            ...t,
+            startDate: t.startDate || t.start_date,
+            monthlyRate: parseFloat(t.monthlyRate || t.monthly_rate || 0),
+            totalPaid: parseFloat(t.totalPaid || t.total_paid || 0),
+            leaseTerm: parseInt(t.leaseTerm || t.lease_term || 0),
+            totalDue: parseFloat(t.totalDue || t.total_due || 0)
+        }));
+    }, [allLandlordTenants]));
+
+    const processedMyRentings = useManageLeasePendings(useMemo(() => {
+        return allRentings.map(r => ({
+            ...r,
+            startDate: r.startDate || r.start_date,
+            monthlyRate: parseFloat(r.monthlyRate || r.monthly_rate || 0),
+            totalPaid: parseFloat(r.totalPaid || r.total_paid || 0),
+            leaseTerm: parseInt(r.leaseTerm || r.lease_term || 0),
+            totalDue: parseFloat(r.totalDue || r.total_due || 0)
+        }));
+    }, [allRentings]));
+
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
@@ -36,21 +59,16 @@ export default function Home() {
                 setAllInquiries(inquiryData || []);
 
                 if (myOwnedProperties.length > 0) {
-                    const tenantRequests = myOwnedProperties.map(prop => 
+                    const tenantRequests = myOwnedProperties.map(prop =>
                         axios.post("http://localhost/api/tenants/fetchTenants.php", {
                             property_id: prop.id
                         })
                     );
 
                     const responses = await Promise.all(tenantRequests);
-                    
+
                     const aggregatedTenants = responses.flatMap(res => {
-                        if (res.data.success) {
-                            return res.data.data.map(t => ({
-                                ...t,
-                                pendingPayment: parseFloat(t.pending_payment || 0)
-                            }));
-                        }
+                        if (res.data.success) return res.data.data;
                         return [];
                     });
 
@@ -70,45 +88,45 @@ export default function Home() {
     }, [userId, myOwnedProperties]);
 
     const stats = useMemo(() => {
-        const totalTenantsCount = allLandlordTenants.length;
-
+        const totalTenantsCount = processedLandlordTenants.length;
+        
         const pendingInquiriesReceived = allInquiries?.filter(inq =>
             inq.status === 'pending' &&
             myOwnedProperties.some(prop => String(prop.id) === String(inq.property_id))
         ).length || 0;
 
-        const myUnpaidDuesCount = allRentings.filter(r => {
-            const pendingAmount = parseFloat(r.pending_payment || r.pendingPayment || 0);
-            return pendingAmount > 0;
-        }).length;
+        const myUnpaidDuesCount = processedMyRentings.filter(r => r.calculatedStatus === 'Pending').length;
 
-        const pendingInquiriesSent = allInquiries?.filter(inq => 
-            String(inq.tenant_id) === String(userId) && 
+        const pendingInquiriesSent = allInquiries?.filter(inq =>
+            String(inq.tenant_id) === String(userId) &&
             inq.status === 'pending'
         ).length || 0;
 
+        const rawUsername = currentUser?.username || "Guest";
+        const truncatedUserName = rawUsername.length > 50
+            ? rawUsername.substring(0, 50) + "..."
+            : rawUsername;
+
         return {
-            userName: currentUser?.username || "Guest",
+            userName: truncatedUserName,
+            fullUserName: rawUsername,
             balance: currentUser?.balance ? parseFloat(currentUser.balance) : 0,
             totalProperties: myOwnedProperties.length,
             totalTenants: totalTenantsCount,
             pendingInquiriesReceived: pendingInquiriesReceived,
             totalRentings: allRentings.length,
-            unpaidDues: myUnpaidDuesCount,
+            unpaidDues: myUnpaidDuesCount, // Based on cycle logic
             pendingInquiriesSent: pendingInquiriesSent,
         };
-    }, [myOwnedProperties, allInquiries, allRentings, allLandlordTenants, currentUser, userId]);
+    }, [myOwnedProperties, allInquiries, allRentings, processedLandlordTenants, processedMyRentings, currentUser, userId]);
 
     return (
         <div className="home-dashboard-container">
             <section className="dashboard-welcome-banner">
                 <div className="banner-content">
-                    <h1 className="banner-title">Welcome back, {stats.userName}!</h1>
-                    <p className="banner-subtitle">
-                        {stats.totalProperties > 0 
-                            ? `Managing ${stats.totalProperties} properties with ${stats.totalTenants} total tenants.`
-                            : `Find your perfect stay. You have ${stats.totalRentings} active rentals.`}
-                    </p>
+                    <h1 className="banner-title" title={stats.fullUserName}>
+                        Welcome back, {stats.userName}!
+                    </h1>
                 </div>
                 <div className="banner-actions">
                     <button onClick={() => navigate('/main/listings')} className="btn-browse-rooms">
@@ -117,6 +135,7 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* FINANCIALS */}
             <section className="dashboard-section">
                 <h2 className="section-title">Financial Overview</h2>
                 <div className="stat-card balance-card">
@@ -133,6 +152,7 @@ export default function Home() {
             </section>
 
             <div className="dashboard-split-grid">
+                {/* LANDLORD SECTION */}
                 <section className="dashboard-section">
                     <h2 className="section-title">Landlord Overview</h2>
                     <div className="dashboard-grid grid-cols-2">
@@ -165,7 +185,6 @@ export default function Home() {
                     </div>
                 </section>
 
-                {/* Tenant Overview */}
                 <section className="dashboard-section">
                     <h2 className="section-title">Tenant Overview</h2>
                     <div className="dashboard-grid grid-cols-2">

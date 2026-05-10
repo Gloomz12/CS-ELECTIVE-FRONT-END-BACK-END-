@@ -8,6 +8,7 @@ import fetchUser from '../hooks/fetchUser.jsx';
 
 // Services
 import { fetchInquiries, acceptInquiry, declineInquiry } from '../services/handleInquiries';
+import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
 
 export default function InquiriesList() {
     const navigate = useNavigate();
@@ -58,6 +59,31 @@ export default function InquiriesList() {
         }
     };
 
+    const handleAcceptClick = (inq) => {
+        const property = properties.find(p => String(p.id) === String(inq.property_id));
+        const monthlyRate = property ? parseFloat(property.price_monthly) : 0;
+
+        if (inq.tenant_balance !== undefined) {
+            const balance = parseFloat(inq.tenant_balance);
+
+            if (balance < monthlyRate) {
+                alert(
+                    `Cannot Proceed: Insufficient Tenant Balance\n\n` +
+                    `Tenant: ${inq.tenantName}\n` +
+                    `Current Balance: ₱${balance.toLocaleString()}\n` +
+                    `Required Rent: ₱${monthlyRate.toLocaleString()}\n\n` +
+                    `The tenant must top up their wallet before you can accept this inquiry.`
+                );
+                return;
+            }
+        } else {
+            console.warn("Tenant balance data missing from inquiry object.");
+            console.log(inq)
+        }
+
+        setAcceptingId(inq.id);
+    };
+
     const handleAcceptConfirm = async (inq) => {
         if (!occupancyDetails.trim()) {
             alert("Please enter occupancy details (e.g., Room 1A, Bed 3)");
@@ -71,7 +97,8 @@ export default function InquiriesList() {
                 setInquiries(prev => prev.filter(iq => iq.id !== inq.id));
                 setAcceptingId(null);
                 setOccupancyDetails('');
-                alert("Inquiry successfully accepted!");
+                alert("Inquiry successfully accepted! First month's rent has been transferred.");
+                triggerBalanceUpdate()
             } else {
                 alert(response.message || "Failed to accept inquiry.");
             }
@@ -86,6 +113,21 @@ export default function InquiriesList() {
     useEffect(() => {
         loadInquiries();
     }, []);
+
+    console.log(pendingInquiries)
+
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString.replace(' ', 'T'));
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
 
     return (
         <div className="page-layout">
@@ -112,10 +154,10 @@ export default function InquiriesList() {
                                         <div key={inq.id} className="inquiries-list-card">
                                             <div className="inquiries-list-header">
                                                 <div>
-                                                    <h3 className="inquiries-list-title">Inquiry for {inq.propertyName}</h3>
-                                                    <p className="inquiries-list-subtitle">From: {inq.tenantName} • Requested Term: {inq.leaseTerm} months</p>
+                                                    <h3 className="inquiries-list-title">Inquiry for {inq.property_name}</h3>
+                                                    <p className="inquiries-list-subtitle">From: {inq.tenant_name} • Requested Term: {inq.lease_term_months} months</p>
                                                 </div>
-                                                <span className="inquiries-list-date">{inq.date}</span>
+                                                <span className="inquiries-list-date">{formatDate(inq.created_at)}</span>
                                             </div>
 
                                             <div className="inquiries-list-message-box">
@@ -134,7 +176,7 @@ export default function InquiriesList() {
                                                             className="inquiries-list-input"
                                                             autoFocus
                                                         />
-                                                        <button onClick={() => handleAcceptConfirm(inq)} className="inquiries-list-btn-confirm">Confirm</button>
+                                                        <button onClick={() => handleAcceptConfirm(inq)} className="inquiries-list-btn-confirm">Confirm & Deduct Rent</button>
                                                         <button onClick={() => { setAcceptingId(null); setOccupancyDetails(''); }} className="inquiries-list-btn-cancel">Cancel</button>
                                                     </div>
                                                 </div>
@@ -143,7 +185,7 @@ export default function InquiriesList() {
                                                     <button onClick={() => handleReject(inq.id)} className="inquiries-list-btn-reject">
                                                         <XCircle size={18} /> Reject
                                                     </button>
-                                                    <button onClick={() => setAcceptingId(inq.id)} className="inquiries-list-btn-accept">
+                                                    <button onClick={() => handleAcceptClick(inq)} className="inquiries-list-btn-accept">
                                                         <CheckCircle size={18} /> Accept & Proceed
                                                     </button>
                                                 </div>

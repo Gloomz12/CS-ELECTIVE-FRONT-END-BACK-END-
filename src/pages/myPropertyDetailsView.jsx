@@ -6,6 +6,7 @@ import { ChevronLeft, User } from 'lucide-react';
 
 // Hooks
 import useFetchTenants from "../hooks/fetchTenants";
+import useManageLeasePendings from "../hooks/useManageLeasePendings"; 
 
 // Services
 import { changePropertyState } from "../services/changePropertyState";
@@ -18,10 +19,25 @@ export default function MyPropertyDetailsView() {
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
 
     const { tenants, isLoading } = useFetchTenants(currentProperty?.id);
-    console.log(tenants);
+    
+    const processedTenants = useManageLeasePendings(tenants);
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
 
     if (!currentProperty) {
-        return <p>Property not found. <button onClick={() => navigate('/main/my-properties')}>Go Back</button></p>;
+        return (
+            <div className="page-layout">
+                <p>Property not found. <button onClick={() => navigate('/main/my-properties')}>Go Back</button></p>
+            </div>
+        );
     }
 
     if (isLoading) {
@@ -99,34 +115,59 @@ export default function MyPropertyDetailsView() {
                                     <thead>
                                         <tr>
                                             <th className="property-details-th">Tenant Name</th>
+                                            <th className="property-details-th">Start Date</th>
                                             <th className="property-details-th">Occupancy</th>
                                             <th className="property-details-th">Lease Term</th>
+                                            <th className="property-details-th text-right">Monthly Rate</th>
                                             <th className="property-details-th">Status</th>
-                                            <th className="property-details-th property-details-td.text-right">Pending Pay</th>
-                                            <th className="property-details-th property-details-td.text-right">Total Paid</th>
-                                            <th className="property-details-th property-details-td.text-right">Total End Due</th>
+                                            <th className="property-details-th text-right">Pending Pay</th>
+                                            <th className="property-details-th text-right">Total Paid</th>
+                                            <th className="property-details-th text-right">Total End Due</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {tenants.map((tenant) => (
+                                        {processedTenants.map((tenant) => (
                                             <tr key={tenant.id}>
                                                 <td className="property-details-td tenant-name">{tenant.tenantName}</td>
+                                                <td className="property-details-td" style={{ color: '#64748b' }}>
+                                                    {formatDate(tenant.startDate)}
+                                                </td>
                                                 <td className="property-details-td">{tenant.occupancy}</td>
                                                 <td className="property-details-td">{tenant.leaseTerm} months</td>
+                                                
+                                                <td className="property-details-td text-right">
+                                                    ₱{Number(tenant.monthlyRate || 0).toLocaleString()}
+                                                </td>
+
                                                 <td className="property-details-td">
-                                                    <span className={`property-details-badge ${tenant.pendingPayment > 0 ? 'danger' : 'success'}`}>
-                                                        {tenant.pendingStatus}
+                                                    <span className={`property-details-badge ${
+                                                        tenant.calculatedStatus === 'Pending' ? 'danger' : 
+                                                        tenant.calculatedStatus === 'Advanced payment' ? 'info' : 'success'
+                                                    }`}>
+                                                        {tenant.calculatedStatus}
                                                     </span>
                                                 </td>
-                                                <td className="property-details-td text-right text-danger">
-                                                    {tenant.pendingPayment > 0 ? `₱${tenant.pendingPayment.toLocaleString()}` : 'None'}
+                                                <td className={`property-details-td text-right ${tenant.calculatedPendingPayment > 0 ? 'text-danger' : ''}`}>
+                                                    {tenant.calculatedPendingPayment > 0 
+                                                        ? `₱${tenant.calculatedPendingPayment.toLocaleString()}` 
+                                                        : 'None'
+                                                    }
                                                 </td>
-                                                <td className="property-details-td text-right" style={{ fontWeight: '500' }}>₱{tenant.totalPaid.toLocaleString()}</td>
-                                                <td className="property-details-td text-right">₱{tenant.totalDue.toLocaleString()}</td>
+                                                <td className="property-details-td text-right" style={{ fontWeight: '500' }}>
+                                                    ₱{tenant.totalPaid.toLocaleString()}
+                                                </td>
+                                                <td className="property-details-td text-right">
+                                                    ₱{tenant.totalDue.toLocaleString()}
+                                                </td>
                                             </tr>
                                         ))}
-                                        {tenants.length === 0 && (
-                                            <tr><td colSpan="7" className="property-details-empty-row">No tenants yet.</td></tr>
+                                        
+                                        {processedTenants.length === 0 && (
+                                            <tr>
+                                                <td colSpan="9" className="property-details-empty-row">
+                                                    No tenants yet.
+                                                </td>
+                                            </tr>
                                         )}
                                     </tbody>
                                 </table>

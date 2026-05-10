@@ -13,10 +13,12 @@ export default function InquireProperty() {
     const location = useLocation();
     const navigate = useNavigate();
     const user = useFetchUser() || {};
-
     const property = location.state?.currentProperty;
 
-    const [leaseTerm, setLeaseTerm] = useState(12);
+    console.log(user)
+    console.log(property)
+
+    const [leaseTerm, setLeaseTerm] = useState(1);
 
     if (!property) {
         return (
@@ -46,18 +48,29 @@ ${applicantName}
 Date: ${new Date().toLocaleDateString()}`;
 
     const handleSend = async () => {
+        const currentBalance = Number(user.balance || 0);
+        const monthlyRate = Number(property.price_monthly || 0);
+
+        if (currentBalance < monthlyRate) {
+            alert(`Insufficient balance. Your current balance is ₱${currentBalance.toLocaleString()}, but this property requires ₱${monthlyRate.toLocaleString()}.`);
+            return; 
+        }
 
         const inquiryData = {
             property_id: property.id,
             tenant_id: user.id,
             lease_term_months: leaseTerm,
-            message: generatedMessage
+            message: generatedMessage,
+            tenant_name:user.full_name,
+            property_name: property.name
         };
+
+        console.log(inquiryData)
 
         const result = await sendInquiry(inquiryData);
 
         if (result.success) {
-            alert('Inquiry message sent to the landlord!');
+            alert(`Inquiry message sent to the landlord. ₱${monthlyRate.toLocaleString()} will be deducted upon acceptance.`);
             navigate(-1);
         } else {
             alert('Failed to send inquiry: ' + result.message);

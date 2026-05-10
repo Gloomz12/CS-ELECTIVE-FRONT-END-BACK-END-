@@ -3,61 +3,56 @@ import { useNavigate } from "react-router-dom";
 
 // HOOKS
 import useFetchRentings from '../hooks/fetchRentings.jsx';
+import useManageLeasePendings from '../hooks/useManageLeasePendings'; 
 
 export default function Rentings() {
     const navigate = useNavigate();
     const { rentings, isLoading } = useFetchRentings();
 
-    const processedRentings = useMemo(() => {
-        if (!rentings) return [];
+    const normalizedRentings = useMemo(() => {
+        if (!rentings || rentings.length === 0) return [];
+        return rentings.map(r => ({
+            ...r, 
+            id: r.id,
+            propertyName: r.propertyName || r.property_name,
+            startDate: r.startDate || r.start_date,
+            monthlyRate: parseFloat(r.monthlyRate || r.monthly_rate || 0),
+            totalPaid: parseFloat(r.totalPaid || r.total_paid || 0),
+            leaseTerm: parseInt(r.leaseTerm || r.lease_term || 0, 10),
+            totalDue: parseFloat(r.totalDue || r.total_due || 0),
+            unitOccupancy: r.unitOccupancy || r.unit_occupancy,
+            imageUrl: r.imageUrl || r.image_url
+        }));
+    }, [rentings]);
 
-        return rentings.map(r => {
-            const startDateObj = new Date(r.startDate || r.start_date);
-            const currentDateObj = new Date();
-            const monthlyRate = parseFloat(r.monthlyRate || r.monthly_rate || 0);
-            const totalPaid = parseFloat(r.totalPaid || r.total_paid || 0);
-            const totalDue = parseFloat(r.totalDue || r.total_due || 0);
+    const processedRentings = useManageLeasePendings(normalizedRentings);
 
-            console.log(r);
+    const rentingsWithUI = useMemo(() => {
+        return processedRentings.map(r => {
+            const isFullyPaid = r.totalPaid >= r.totalDue && r.totalDue > 0;
 
-            let monthsElapsed = (currentDateObj.getFullYear() - startDateObj.getFullYear()) * 12 + (currentDateObj.getMonth() - startDateObj.getMonth());
-
-            if (currentDateObj.getDate() < startDateObj.getDate()) {
-                monthsElapsed--;
-            }
-            monthsElapsed = Math.max(0, monthsElapsed);
-
-            const monthsCoveredByPayment = monthlyRate > 0 ? Math.floor(totalPaid / monthlyRate) : 0;
-
-            const calculatedMonthsPending = monthsElapsed - monthsCoveredByPayment;
-            const calculatedPendingPayment = calculatedMonthsPending * monthlyRate;
-
-            const isFullyPaid = totalPaid >= totalDue && totalDue > 0;
-
-            let statusLabel = "Up to Date";
+            let liveStatus = r.calculatedStatus || "Up to date";
             let statusClass = "rentings-badge-uptodate";
 
             if (isFullyPaid) {
-                statusLabel = "Fully Paid";
+                liveStatus = "Fully Paid";
                 statusClass = "rentings-badge-fullypaid";
-            } else if (calculatedMonthsPending > 0) {
-                statusLabel = "Overdue";
+            } else if (r.calculatedStatus === 'Pending') {
+                liveStatus = "Overdue";
                 statusClass = "rentings-badge-pending";
-            } else if (calculatedMonthsPending < 0) {
-                statusLabel = "Advance Paid";
+            } else if (r.calculatedStatus === 'Advanced payment') {
+                liveStatus = "Advance Paid";
                 statusClass = "rentings-badge-advance";
             }
 
             return {
                 ...r,
-                monthsPending: calculatedMonthsPending,
-                pendingPayment: Math.max(0, calculatedPendingPayment),
-                isFullyPaid: isFullyPaid,
-                liveStatus: statusLabel,
-                statusClass: statusClass
+                isFullyPaid,
+                liveStatus,
+                statusClass
             };
         });
-    }, [rentings]);
+    }, [processedRentings]);
 
     if (isLoading) {
         return <div className="rentings-wrapper"><p>Loading rentings...</p></div>;
@@ -70,57 +65,61 @@ export default function Rentings() {
                     <div className="rentings-wrapper">
                         <h1 className="rentings-title">My Rentings</h1>
 
-                        {processedRentings.length === 0 ? (
+                        {rentingsWithUI.length === 0 ? (
                             <div className="rentings-empty">
                                 You are not currently renting any properties.
                             </div>
                         ) : (
                             <div className="rentings-grid">
-                                {processedRentings.map(renting => (
+                                {rentingsWithUI.map(renting => (
                                     <div
                                         key={renting.id}
                                         className="rentings-card"
                                         onClick={() => navigate(
-                                            `/main/leasing-information/${encodeURIComponent((renting.propertyName || renting.property_name).toLowerCase().replace(/\s+/g, '-'))}`,
+                                            `/main/leasing-information/${encodeURIComponent(renting.propertyName.toLowerCase().replace(/\s+/g, '-'))}`,
                                             { state: { renting } }
                                         )}
                                     >
                                         <div className="rentings-card-image-wrap">
                                             <img
-                                                src={renting.imageUrl || renting.image_url || "/placeholder.jpg"}
+                                                src={renting.imageUrl || "/placeholder.jpg"}
                                                 alt="Property"
                                                 className="rentings-card-img"
                                             />
                                         </div>
                                         <div className="rentings-card-content">
                                             <div className="rentings-card-header">
-                                                <h3 className="rentings-card-title">{renting.propertyName || renting.property_name}</h3>
+                                                <h3 className="rentings-card-title">{renting.propertyName}</h3>
                                                 <span className={`rentings-badge ${renting.statusClass}`}>
                                                     {renting.liveStatus}
                                                 </span>
                                             </div>
+                                            
                                             <p className="rentings-card-subtitle">
-                                                Lease Term: {renting.leaseTerm || renting.lease_term} months • Started {renting.startDate || renting.start_date}
+                                                Lease Term: {renting.leaseTerm} months • Started {renting.startDate}
                                             </p>
                                             <p className="rentings-card-subtitle">
-                                                Started {renting.startDate || renting.start_date}
-                                            </p>
-                                            <p className="rentings-card-subtitle">
-                                                Room Occupancy : {renting.unitOccupancy}
+                                                Room Occupancy: {renting.unitOccupancy}
                                             </p>
 
                                             <div className="rentings-rates-row">
                                                 <div className="rentings-rate-box rentings-rate-normal">
                                                     <p className="rentings-rate-label">Monthly Rate</p>
-                                                    <p className="rentings-rate-value">₱{parseFloat(renting.monthlyRate || renting.monthly_rate).toLocaleString()}</p>
+                                                    <p className="rentings-rate-value">
+                                                        ₱{renting.monthlyRate.toLocaleString()}
+                                                    </p>
                                                 </div>
 
-                                                <div className={`rentings-rate-box ${renting.isFullyPaid ? 'rentings-rate-fullypaid' : renting.monthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'}`}>
+                                                <div className={`rentings-rate-box ${
+                                                    renting.isFullyPaid ? 'rentings-rate-fullypaid' : 
+                                                    renting.calculatedMonthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'
+                                                }`}>
                                                     <p className="rentings-rate-label">
-                                                        {renting.isFullyPaid ? 'Contract Status' : renting.monthsPending > 0 ? `Amount Due (${renting.monthsPending} mo)` : 'Balance'}
+                                                        {renting.isFullyPaid ? 'Contract Status' : 
+                                                         renting.calculatedMonthsPending > 0 ? `Amount Due (${renting.calculatedMonthsPending} mo)` : 'Balance'}
                                                     </p>
                                                     <p className="rentings-rate-value">
-                                                        {renting.isFullyPaid ? 'Fully Paid' : `₱${renting.pendingPayment.toLocaleString()}`}
+                                                        {renting.isFullyPaid ? 'Fully Paid' : `₱${(renting.calculatedPendingPayment || 0).toLocaleString()}`}
                                                     </p>
                                                 </div>
                                             </div>

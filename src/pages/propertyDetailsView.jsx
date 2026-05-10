@@ -22,7 +22,7 @@ export default function PropertyDetailsView() {
         return formattedName === propertyName;
     }) || locationProperty;
 
-console.log(property)
+    console.log(property)
 
     if (!property) {
         return (
@@ -144,7 +144,7 @@ console.log(property)
                                     <div className="property-view-avatar-badge" title="Verified Landlord"></div>
                                 </div>
 
-                                <h4 className="property-view-landlord-name">Owner: {property.full_name}</h4>
+                                <h4 className="property-view-landlord-name">Owner: {property.full_name === null ? property.username : property.full_name}</h4>
                                 <p className="property-view-landlord-sub">Property Landlord</p>
 
                                 <button

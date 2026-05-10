@@ -18,6 +18,7 @@ export default function useFetchTenants(propertyId) {
                 });
 
                 if (response.data.success) {
+
                     const formattedData = response.data.data.map(t => ({
                         id: t.id,
                         tenantName: t.tenant_name || "Unknown Tenant",
@@ -26,9 +27,12 @@ export default function useFetchTenants(propertyId) {
                         pendingStatus: parseFloat(t.pending_payment) > 0 ? "Pending" : "Up to date",
                         pendingPayment: parseFloat(t.pending_payment),
                         totalPaid: parseFloat(t.total_paid),
-                        totalDue: parseFloat(t.total_due)
+                        totalDue: parseFloat(t.total_due),
+                        startDate: new Date(t.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                        monthlyRate: parseFloat(t.monthly_rate)
                     }));
                     setTenants(formattedData);
+                    console.log(response.data.data)
                 }
             } catch (err) {
                 console.error("Error fetching tenants:", err);
