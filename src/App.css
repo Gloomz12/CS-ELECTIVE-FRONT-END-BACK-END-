@@ -467,48 +467,181 @@
   overflow: hidden;
 }
 
+/* LOADING==================================================================================================*/
+#global-app-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.global-loader-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.global-loader-text {
+  color: #333333;
+  font-weight: 500;
+  margin: 0;
+}
+
+.animate-spin-custom {
+  animation: spin-kf 1s linear infinite;
+  color: #0d9488;
+}
+
+@keyframes spin-kf {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* TOAST NOTIFICATION==================================================================================================*/
 .toast-container {
   position: fixed;
-  top: 5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  background-color: #0f172a;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  animation: toast-bounce 1s infinite;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.icon-success {
-  color: #2dd4bf;
-}
-
-.icon-error {
-  color: #f87171;
-}
-
-.toast-text {
+.toast-message {
+  min-width: 250px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toast-slide-in 0.3s ease-out forwards;
 }
 
-@keyframes toast-bounce {
+.toast-success {
+  background-color: #10b981;
+  border-left: 5px solid #059669;
+}
 
-  0%,
-  100% {
-    transform: translate(-50%, -25%);
-    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+.toast-error {
+  background-color: #ef4444;
+  border-left: 5px solid #dc2626;
+}
+
+.toast-info {
+  background-color: #3b82f6;
+  border-left: 5px solid #2563eb;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
   }
 
-  50% {
-    transform: translate(-50%, 0);
-    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
+}
+
+/* CONFIRMATION MODAL ==================================================================================================*/
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+.popup-content {
+  background: white;
+  width: 90%;
+  max-width: 400px;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.popup-title {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.popup-description {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.popup-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 100px;
+}
+
+.popup-btn-cancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.popup-btn-cancel:hover {
+  background-color: #e2e8f0;
+}
+
+.popup-btn-confirm {
+  background-color: #0d9488;
+  color: white;
+}
+
+.popup-btn-confirm:hover {
+  background-color: #0f766e;
+}
+
+.popup-btn-reject {
+  background-color: #ef4444;
+  color: white;
+}
+
+.popup-btn-reject:hover {
+  background-color: #dc2626;
 }
 
 /*SIDEBAR==================================================================================================*/
@@ -1878,7 +2011,7 @@
   margin: 30px 0;
   display: grid;
   gap: 12px;
-  height: 400px;
+  height: auto;
   width: 100%;
 }
 
@@ -3065,7 +3198,7 @@
   background-color: #0f766e;
 }
 
-/* Inquires List ==================================================================================================*/
+/* Inquiries List ==================================================================================================*/
 .inquiries-list-wrapper {
   display: flex;
   flex-direction: column;
@@ -3397,4 +3530,148 @@
   padding: 2rem;
   text-align: center;
   color: #94a3b8;
+}
+
+.header-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.header-delete-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-delete-btn:hover:not(.btn-disabled) {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+}
+
+.action-cell {
+  text-align: center;
+}
+
+.tenant-remove-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.tenant-remove-btn:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.text-danger {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  backdrop-filter: blur(4px);
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+
+#delete-property-main-btn {
+  margin-left: auto;
+  background: #fff5f5;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+}
+
+#delete-property-main-btn:hover:not(.btn-disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  filter: grayscale(1);
+}
+
+.action-cell {
+  text-align: center;
+}
+
+.remove-tenant {
+  color: #ef4444;
+}
+
+.remove-tenant:hover {
+  background-color: #fee2e2;
+  border-radius: 4px;
+}
+
+
+.text-danger {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  font-weight: 500;
+  color: #64748b;
 }

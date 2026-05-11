@@ -15,7 +15,7 @@ $database = new Connection();
 $conn = $database->connect();
 
 try {
-    $query = "SELECT id, property_id, tenant_id, message, status FROM inquiries";
+    $query = "SELECT id, property_id, tenant_id, lease_term_months, tenant_name, property_name, created_at, message, status FROM inquiries";
 
     $stmt = $conn->prepare($query);
     $stmt->execute();

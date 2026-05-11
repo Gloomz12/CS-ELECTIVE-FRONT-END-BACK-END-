@@ -1,38 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
-//COMPONENTS
+// COMPONENTS
 import Header from '../components/header.jsx';
 import Sidebar from '../components/sidebar.jsx';
 
-//HOOKS
+// HOOKS
 import useFetchUser from '../hooks/fetchUser.jsx';
 import UseFetchProperties from '../hooks/fetchProperties.jsx';
 
-//ICONS
+// ICONS
 import { MapPin } from 'lucide-react';
 
 export default function Listings() {
-
     const navigate = useNavigate();
+    const { setIsGlobalLoading } = useOutletContext(); 
     const properties = UseFetchProperties();
-    console.log(properties);
     const user = useFetchUser();
-
-    const [activeTab, setActiveTab] = useState('listings');
-    const [subView, setSubView] = useState(null);
-    const navigateTo = (tab, sub = null) => {
-        setActiveTab(tab);
-        setSubView(sub);
-    };
-
 
     const [category, setCategory] = useState('all');
     const [sortOrder, setSortOrder] = useState('none');
+
     const categories = ['all', 'condo', 'dorm', 'bedspace', 'boarding house'];
 
-
+    useEffect(() => {
+        let timer;
+        if (!properties || properties.length === 0) {
+            setIsGlobalLoading(true);
+        } else {
+            timer = setTimeout(() => {
+                setIsGlobalLoading(false);
+            }, 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [properties, setIsGlobalLoading]);
 
     const filtered = Array.isArray(properties) ? properties.filter(p => {
         const matchesCategory = category === 'all' || p.type === category;
@@ -49,10 +51,26 @@ export default function Listings() {
         return 0;
     });
 
-    console.log("Filtered & Sorted Properties:", sortedProperties);
+    const getFirstImage = (urlData) => {
+        if (!urlData) return "/images/defaultProperty.png";
+        try {
+            if (typeof urlData === 'string') {
+                if (urlData.startsWith('[')) {
+                    const parsed = JSON.parse(urlData);
+                    return Array.isArray(parsed) ? parsed[0] : urlData;
+                }
+                if (urlData.includes('|')) {
+                    return urlData.split('|')[0].trim();
+                }
+                return urlData;
+            }
+            return Array.isArray(urlData) ? urlData[0] : urlData;
+        } catch (e) {
+            return urlData;
+        }
+    };
 
     return (
-
         <div className="content-wrapper">
             <div className="listings-container">
                 <div className="listings-controls">
@@ -83,8 +101,10 @@ export default function Listings() {
                 <div className="listings-grid">
                     {sortedProperties.map(prop => {
                         const isAvailable = prop.status !== 'unavailable';
-                        const isOccupied = prop.status === 'occupied'
+                        const isOccupied = prop.status === 'occupied';
                         const urlName = prop.name.toLowerCase().replace(/\s+/g, '-');
+                        const displayImage = getFirstImage(prop.image_url);
+
                         return (
                             <div
                                 key={prop.id}
@@ -93,7 +113,7 @@ export default function Listings() {
                             >
                                 <div className="card-media">
                                     <img
-                                        src={prop.image_url || "/images/defaultProperty.png"}
+                                        src={displayImage}
                                         alt={prop.name}
                                         className={`property-image ${isAvailable ? '' : isOccupied ? 'occupied-filter' : 'unavailable-filter'}`}
                                     />
@@ -123,7 +143,7 @@ export default function Listings() {
                                     </div>
                                 </div>
                             </div>
-                        )
+                        );
                     })}
                 </div>
             </div>

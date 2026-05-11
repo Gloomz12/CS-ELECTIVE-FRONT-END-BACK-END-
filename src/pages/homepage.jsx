@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
 // Icons
@@ -16,6 +16,7 @@ import { fetchInquiries } from '../services/handleInquiries';
 
 export default function Home() {
     const navigate = useNavigate();
+    const { setIsGlobalLoading } = useOutletContext();
 
     const currentUser = useFetchUser();
     const userId = currentUser?.id || localStorage.getItem("userId");
@@ -54,42 +55,38 @@ export default function Home() {
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            setIsGlobalLoading(true);
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+
             try {
-                const inquiryData = await fetchInquiries();
+                const [inquiryData] = await Promise.all([
+                    fetchInquiries(),
+                    minDelay
+                ]);
+
                 setAllInquiries(inquiryData || []);
 
                 if (myOwnedProperties.length > 0) {
                     const tenantRequests = myOwnedProperties.map(prop =>
-                        axios.post("http://localhost/api/tenants/fetchTenants.php", {
-                            property_id: prop.id
-                        })
+                        axios.post("http://localhost/api/tenants/fetchTenants.php", { property_id: prop.id })
                     );
-
                     const responses = await Promise.all(tenantRequests);
-
-                    const aggregatedTenants = responses.flatMap(res => {
-                        if (res.data.success) return res.data.data;
-                        return [];
-                    });
-
+                    const aggregatedTenants = responses.flatMap(res => res.data.success ? res.data.data : []);
                     setAllLandlordTenants(aggregatedTenants);
                 }
             } catch (error) {
                 console.error("Dashboard Data Fetch Error:", error);
             } finally {
-                setIsLoadingTenants(false);
+                setIsGlobalLoading(false);
             }
         };
 
-        if (userId) {
-            fetchDashboardData();
-        }
-        document.title = "Dashboard | Dorm Dash";
-    }, [userId, myOwnedProperties]);
+        if (userId) fetchDashboardData();
+    }, [userId, myOwnedProperties, setIsGlobalLoading]);
 
     const stats = useMemo(() => {
         const totalTenantsCount = processedLandlordTenants.length;
-        
+
         const pendingInquiriesReceived = allInquiries?.filter(inq =>
             inq.status === 'pending' &&
             myOwnedProperties.some(prop => String(prop.id) === String(inq.property_id))
@@ -115,7 +112,7 @@ export default function Home() {
             totalTenants: totalTenantsCount,
             pendingInquiriesReceived: pendingInquiriesReceived,
             totalRentings: allRentings.length,
-            unpaidDues: myUnpaidDuesCount, // Based on cycle logic
+            unpaidDues: myUnpaidDuesCount,
             pendingInquiriesSent: pendingInquiriesSent,
         };
     }, [myOwnedProperties, allInquiries, allRentings, processedLandlordTenants, processedMyRentings, currentUser, userId]);
@@ -135,7 +132,6 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* FINANCIALS */}
             <section className="dashboard-section">
                 <h2 className="section-title">Financial Overview</h2>
                 <div className="stat-card balance-card">
@@ -152,7 +148,6 @@ export default function Home() {
             </section>
 
             <div className="dashboard-split-grid">
-                {/* LANDLORD SECTION */}
                 <section className="dashboard-section">
                     <h2 className="section-title">Landlord Overview</h2>
                     <div className="dashboard-grid grid-cols-2">

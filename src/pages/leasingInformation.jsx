@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 // Icons
 import { ChevronLeft, CreditCard, CheckCircle, AlertTriangle, Calendar, Hash, Activity } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function LeasingInformation() {
     const navigate = useNavigate();
     const location = useLocation();
     const { propertyName } = useParams();
+    const { setIsGlobalLoading } = useOutletContext();
     const r = location.state?.renting;
 
     const currentUser = useFetchUser();
@@ -92,7 +93,11 @@ export default function LeasingInformation() {
             return;
         }
 
+        setIsGlobalLoading(true); 
         setIsProcessing(true);
+
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+
         const monthsPayingFor = Math.floor(amountToPay / leaseData.monthlyRate);
 
         const paymentData = {
@@ -106,14 +111,24 @@ export default function LeasingInformation() {
             months_paid: monthsPayingFor
         };
 
-        const result = await PaymentService.processPropertyPayment(paymentData);
+        try {
+            const [result] = await Promise.all([
+                PaymentService.processPropertyPayment(paymentData),
+                minDelay
+            ]);
 
-        if (result.success) {
-            alert("Payment successful!");
-            triggerBalanceUpdate();
-            navigate('/main/rentings');
-        } else {
-            alert(`Payment Failed: ${result.message}`);
+            if (result.success) {
+                alert("Payment successful!");
+                triggerBalanceUpdate();
+                navigate('/main/rentings');
+            } else {
+                alert(`Payment Failed: ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Payment Error:", error);
+            alert("An error occurred during payment.");
+        } finally {
+            setIsGlobalLoading(false); 
             setIsProcessing(false);
         }
     };

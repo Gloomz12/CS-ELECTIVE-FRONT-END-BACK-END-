@@ -1,15 +1,12 @@
-import React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom'; // Added useParams
-
-// Icons
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react';
-
-// Hooks
 import useFetchUser from '../hooks/fetchUser';
 import UseFetchProperties from '../hooks/fetchProperties';
 
 export default function PropertyDetailsView() {
     const { propertyName } = useParams();
+    const { setIsGlobalLoading } = useOutletContext(); 
     const location = useLocation();
     const navigate = useNavigate();
     const user = useFetchUser();
@@ -22,7 +19,20 @@ export default function PropertyDetailsView() {
         return formattedName === propertyName;
     }) || locationProperty;
 
-    console.log(property)
+    useEffect(() => {
+        let timer;
+        if (!property) {
+            setIsGlobalLoading(true);
+        } else {
+            timer = setTimeout(() => {
+                setIsGlobalLoading(false);
+            }, 1000);
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [property, setIsGlobalLoading]);
 
     if (!property) {
         return (

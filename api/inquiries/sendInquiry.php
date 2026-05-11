@@ -21,8 +21,8 @@ if (
     !empty($data->message)
 ) {
     try {
-        $query = "INSERT INTO inquiries (property_id, tenant_id, lease_term_months, message, status) 
-                  VALUES (:property_id, :tenant_id, :lease_term_months, :message, 'pending')";
+        $query = "INSERT INTO inquiries (property_id, tenant_id, lease_term_months, tenant_name, property_name, message, status) 
+                  VALUES (:property_id, :tenant_id, :lease_term_months, :tenant_name, :property_name, :message, 'pending')";
 
         /** @var PDO $conn */
         $stmt = $conn->prepare($query);
@@ -30,6 +30,8 @@ if (
         $stmt->bindParam(':property_id', $data->property_id);
         $stmt->bindParam(':tenant_id', $data->tenant_id);
         $stmt->bindParam(':lease_term_months', $data->lease_term_months);
+        $stmt->bindParam(':tenant_name', $data->tenant_name);
+        $stmt->bindParam(':property_name', $data->property_name);
         $stmt->bindParam(':message', $data->message);
 
         if ($stmt->execute()) {

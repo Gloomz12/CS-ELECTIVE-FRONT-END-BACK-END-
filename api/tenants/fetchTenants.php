@@ -23,7 +23,7 @@ try {
         $stmt = $conn->prepare("
             SELECT 
                 r.*, 
-                u.username as tenant_name
+                u.full_name as tenant_name
             FROM rentings r
             LEFT JOIN users u ON r.tenant_id = u.id
             WHERE r.property_id = ?

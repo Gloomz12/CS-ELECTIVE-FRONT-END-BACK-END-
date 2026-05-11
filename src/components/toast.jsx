@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useEffect } from 'react';
 
-// Icons
-import { CheckCircle, XCircle } from 'lucide-react';
-
-export default function Toast({ toast }) {
+export const Toast = ({ message, type = 'info', onClose, duration = 3000 }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, duration);
+        return () => clearTimeout(timer);
+    }, [duration, onClose]);
 
     return (
-        <div id="toast-notification" className={`toast ${toast.type}`}>
-            {toast.type === 'success' ? <CheckCircle size={20} className="icon-success" /> : <XCircle size={20} className="icon-error" />}
-            <span className="toast-message">{toast.message}</span>
+        <div className="toast-container">
+            <div className={`toast-message toast-${type}`} id={`toast-${type}`}>
+                {message}
+            </div>
         </div>
     );
-
-}
+};

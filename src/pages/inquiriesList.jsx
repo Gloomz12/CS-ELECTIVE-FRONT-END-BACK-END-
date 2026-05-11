@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 // Hooks
-import UseFetchProperties from '../hooks/fetchProperties'
+import UseFetchProperties from '../hooks/fetchProperties';
 import fetchUser from '../hooks/fetchUser.jsx';
+import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
 
 // Services
 import { fetchInquiries, acceptInquiry, declineInquiry } from '../services/handleInquiries';
-import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
+
+// Components
+import { ConfirmationModal } from '../components/confirmationModal.jsx';
 
 export default function InquiriesList() {
     const navigate = useNavigate();
+    const { showToast, setIsGlobalLoading } = useOutletContext();
 
     const [isLoading, setIsLoading] = useState(true);
     const [acceptingId, setAcceptingId] = useState(null);
     const [occupancyDetails, setOccupancyDetails] = useState('');
     const [inquiries, setInquiries] = useState([]);
+    const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
     const loadInquiries = async () => {
         setIsLoading(true);
@@ -25,7 +30,7 @@ export default function InquiriesList() {
             setInquiries(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Fetch Inquiries Error:", error);
-
+            showToast("Failed to load inquiries.", "error");
         } finally {
             setIsLoading(false);
         }
@@ -34,7 +39,6 @@ export default function InquiriesList() {
     const currentUser = fetchUser();
     const properties = UseFetchProperties();
 
-
     const ownedProperties = properties.filter(prop => String(prop.owner_id) === String(currentUser?.id));
 
     const pendingInquiries = inquiries.filter(inquiry =>
@@ -42,20 +46,31 @@ export default function InquiriesList() {
         ownedProperties.some(prop => String(prop.id) === String(inquiry.property_id))
     );
 
+    const handleReject = (id) => {
+        setModalConfig({
+            isOpen: true,
+            title: "Decline Inquiry",
+            message: "Are you sure you want to decline this inquiry? This action cannot be undone.",
+            confirmText: "Decline",
+            onConfirm: () => executeReject(id)
+        });
+    };
 
-    const handleReject = async (id) => {
-        if (!window.confirm("Are you sure you want to decline this inquiry?")) return;
+    const executeReject = async (id) => {
+        setModalConfig({ isOpen: false });
+        setIsGlobalLoading(true);
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
         try {
-            const response = await declineInquiry(id);
+            const [response] = await Promise.all([declineInquiry(id), minDelay]);
             if (response.success) {
                 setInquiries(prev => prev.filter(iq => iq.id !== id));
+                showToast("Inquiry declined.", "success");
             } else {
-                alert(response.message || "Failed to decline inquiry.");
+                showToast(response.message || "Failed to decline.", "error");
             }
-        } catch (error) {
-            console.error("Decline Error:", error);
-            setInquiries(prev => prev.filter(iq => iq.id !== id));
+        } finally {
+            setIsGlobalLoading(false);
         }
     };
 
@@ -67,55 +82,38 @@ export default function InquiriesList() {
             const balance = parseFloat(inq.tenant_balance);
 
             if (balance < monthlyRate) {
-                alert(
-                    `Cannot Proceed: Insufficient Tenant Balance\n\n` +
-                    `Tenant: ${inq.tenantName}\n` +
-                    `Current Balance: ₱${balance.toLocaleString()}\n` +
-                    `Required Rent: ₱${monthlyRate.toLocaleString()}\n\n` +
-                    `The tenant must top up their wallet before you can accept this inquiry.`
-                );
+                showToast(`Tenant has insufficient balance (₱${balance.toLocaleString()}).`, "error");
                 return;
             }
-        } else {
-            console.warn("Tenant balance data missing from inquiry object.");
-            console.log(inq)
         }
-
         setAcceptingId(inq.id);
     };
 
     const handleAcceptConfirm = async (inq) => {
         if (!occupancyDetails.trim()) {
-            alert("Please enter occupancy details (e.g., Room 1A, Bed 3)");
+            showToast("Please enter occupancy details.", "error");
             return;
         }
 
-        try {
-            const response = await acceptInquiry(inq, occupancyDetails);
+        setIsGlobalLoading(true);
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
+        try {
+            const [response] = await Promise.all([acceptInquiry(inq, occupancyDetails), minDelay]);
             if (response.success) {
                 setInquiries(prev => prev.filter(iq => iq.id !== inq.id));
                 setAcceptingId(null);
-                setOccupancyDetails('');
-                alert("Inquiry successfully accepted! First month's rent has been transferred.");
-                triggerBalanceUpdate()
-            } else {
-                alert(response.message || "Failed to accept inquiry.");
+                showToast("Accepted successfully!", "success");
+                triggerBalanceUpdate();
             }
-        } catch (error) {
-            console.error("Accept Error:", error);
-            setInquiries(prev => prev.filter(iq => iq.id !== inq.id));
-            setAcceptingId(null);
-            setOccupancyDetails('');
+        } finally {
+            setIsGlobalLoading(false);
         }
     };
 
     useEffect(() => {
         loadInquiries();
     }, []);
-
-    console.log(pendingInquiries)
-
 
     const formatDate = (dateString) => {
         if (!dateString) return "";
@@ -131,6 +129,7 @@ export default function InquiriesList() {
 
     return (
         <div className="page-layout">
+            <ConfirmationModal {...modalConfig} onCancel={() => setModalConfig({ isOpen: false })} />
             <div className="page-main">
                 <div className="page-content">
                     <div className="my-properties-container">
