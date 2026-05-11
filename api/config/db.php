@@ -1,6 +1,6 @@
 <?php
 define("SERVER", "localhost");
-define("DBASE", "property_rental_db");
+define("DBASE", "dorm_dash_db");
 define("USER", "root");
 define("PWORD", "");
 define("CHARSET", "utf8mb4");
@@ -22,7 +22,7 @@ class Connection
 
         try {
             static::$conn = new \PDO($cnString, USER, PWORD, $options);
-            return static::$conn; // CRITICAL FIX: Return the connection object
+            return static::$conn;
         } catch (\Throwable $th) {
             header('Content-Type: application/json');
             echo json_encode(["success" => false, "message" => "Connection failed: " . $th->getMessage()]);
