@@ -2,7 +2,13 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 // Icons
-import { ChevronLeft, CreditCard, CheckCircle, AlertTriangle, Calendar, Hash, Activity } from 'lucide-react';
+import {
+    ChevronLeft, CreditCard, CheckCircle,
+    AlertTriangle, Calendar, Hash, Activity, History
+} from 'lucide-react';
+
+// Components
+import { Toast } from '../components/toast.jsx';
 
 // Services
 import { PaymentService } from '../services/paymentService.jsx';
@@ -11,6 +17,7 @@ import { PaymentService } from '../services/paymentService.jsx';
 import useFetchUser from '../hooks/fetchUser.jsx';
 import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
 import useManageLeasePendings from '../hooks/useManageLeasePendings';
+import useFetchTransactions from '../hooks/fetchTransaction.jsx';
 
 export default function LeasingInformation() {
     const navigate = useNavigate();
@@ -24,6 +31,22 @@ export default function LeasingInformation() {
     const [amountToPay, setAmountToPay] = useState(0);
     const [advance, setAdvance] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const userId = currentUser?.id || localStorage.getItem("userId");
+    const { transactions, loading: txLoading } = useFetchTransactions(userId);
+
+    useEffect(() => {
+        if (transactions && transactions.length > 0) {
+            console.log(transactions);
+        } else if (transactions.length === 0 && !txLoading) {
+            console.log("No transactions found for this user.");
+        }
+    }, [transactions, userId, txLoading]);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+    };
 
     const normalizedRenting = useMemo(() => {
         if (!r) return null;
@@ -61,11 +84,8 @@ export default function LeasingInformation() {
 
     useEffect(() => {
         if (leaseData) {
-            let debt = leaseData.calculatedPendingPayment; 
-            
-            if (advance) {
-                debt += leaseData.monthlyRate;
-            }
+            let debt = leaseData.calculatedPendingPayment;
+            if (advance) debt += leaseData.monthlyRate;
 
             const remaining = Math.max(0, leaseData.totalDue - leaseData.totalPaid);
             if (debt > remaining) debt = remaining;
@@ -89,21 +109,22 @@ export default function LeasingInformation() {
 
     const handlePayment = async () => {
         if (amountToPay > walletBalance) {
-            alert('Insufficient wallet balance!');
+            showToast('Insufficient wallet balance!', 'error');
             return;
         }
 
-        setIsGlobalLoading(true); 
+        setIsGlobalLoading(true);
         setIsProcessing(true);
 
         const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
         const monthsPayingFor = Math.floor(amountToPay / leaseData.monthlyRate);
 
         const paymentData = {
-            tenant_id: leaseData.tenantId || leaseData.tenant_id,
+            tenant_id: userId,
             owner_id: leaseData.ownerId || leaseData.owner_id,
             renting_id: leaseData.id,
+            property_id: leaseData.propertyId || leaseData.property_id,
+            unit_occupancy: leaseData.unitOccupancy || leaseData.unit_occupancy,
             months_pending: leaseData.calculatedMonthsPending,
             status: leaseData.calculatedStatus,
             pending_payment: leaseData.calculatedPendingPayment,
@@ -118,41 +139,62 @@ export default function LeasingInformation() {
             ]);
 
             if (result.success) {
-                alert("Payment successful!");
+                showToast(`Payment successful! Ref: ${result.reference_number}`, "success");
                 triggerBalanceUpdate();
-                navigate('/main/rentings');
+                setTimeout(() => navigate('/main/rentings'), 2000);
             } else {
-                alert(`Payment Failed: ${result.message}`);
+                showToast(`Payment Failed: ${result.message}`, "error");
             }
         } catch (error) {
             console.error("Payment Error:", error);
-            alert("An error occurred during payment.");
+            showToast("An error occurred during payment.", "error");
         } finally {
-            setIsGlobalLoading(false); 
+            setIsGlobalLoading(false);
             setIsProcessing(false);
         }
     };
 
     return (
         <div id="leasing-information-layout" className="leasing-information-page-layout">
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
             <div id="leasing-information-main" className="leasing-information-page-main">
                 <div id="leasing-information-content" className="leasing-information-page-content">
                     <div id="leasing-information-wrapper" className="leasing-information-wrapper">
                         <div id="leasing-information-container" className="leasing-information-container">
 
                             <div id="leasing-information-header" className="leasing-information-header">
-                                <button id="leasing-information-back-btn" className="leasing-information-back-btn" onClick={() => navigate('/main/rentings')}>
-                                    <ChevronLeft size={24} />
+                                <div className="leasing-info-header-left">
+                                    <button id="leasing-information-back-btn" className="leasing-information-back-btn" onClick={() => navigate('/main/rentings', { state: { leaseData } })}>
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    <h2 id="leasing-information-title" className="leasing-information-title">
+                                        Lease Details: {leaseData.propertyName || leaseData.property_name}
+                                    </h2>
+                                </div>
+                                <button
+                                    className="leasing-info-history-btn"
+                                    onClick={() => navigate(
+                                        `/main/transaction-history/${leaseData.id}/${leaseData.tenantId}/${leaseData.unitOccupancy.toLowerCase().replace(/\s+/g, '-')}`,
+                                        { state: { leaseData } }
+                                    )}
+                                    title="View Transactions"
+                                >
+                                    <History size={18} />
+                                    <span>History</span>
                                 </button>
-                                <h2 id="leasing-information-title" className="leasing-information-title">
-                                    Lease Details: {leaseData.propertyName || leaseData.property_name}
-                                </h2>
                             </div>
 
                             <div id="leasing-information-body" className="leasing-information-body">
                                 <div id="leasing-information-main-col" className="leasing-information-main-col">
 
-                                    <div id="leasing-information-status-wrapper" className="leasing-information-status-wrapper">
+                                    <div className="leasing-information-status-wrapper">
                                         <span className={`leasing-information-status-badge ${leaseData.status === 'Active' ? 'leasing-information-status-active' : 'leasing-information-status-inactive'}`}>
                                             {leaseData.status}
                                         </span>
@@ -161,41 +203,30 @@ export default function LeasingInformation() {
 
                                     {isFullyPaid ? (
                                         <div className="leasing-information-banner leasing-information-banner-fully-paid">
-                                            <CheckCircle className="leasing-information-icon-fully-paid" size={24} />
+                                            <CheckCircle size={24} />
                                             <div className="leasing-information-banner-text-wrapper">
-                                                <h4 className="leasing-information-banner-title-fully-paid">Contract Fully Paid</h4>
-                                                <p className="leasing-information-banner-desc-fully-paid">All payments completed for this lease.</p>
+                                                <h4>Contract Fully Paid</h4>
+                                                <p>All payments completed for this lease.</p>
                                             </div>
                                         </div>
                                     ) : (
                                         <>
                                             {leaseData.calculatedStatus === 'Pending' && (
                                                 <div className="leasing-information-banner leasing-information-banner-overdue">
-                                                    <AlertTriangle className="leasing-information-icon-overdue" size={24} />
+                                                    <AlertTriangle size={24} />
                                                     <div className="leasing-information-banner-text-wrapper">
-                                                        <h4 className="leasing-information-banner-title-overdue">Payment Required</h4>
-                                                        <p className="leasing-information-banner-desc-overdue">You are <strong>{Math.ceil(leaseData.calculatedMonthsPending)}</strong> months behind.</p>
-                                                        <p className="leasing-information-banner-total-overdue">Total Due: ₱{leaseData.calculatedPendingPayment.toLocaleString()}</p>
+                                                        <h4>Payment Required</h4>
+                                                        <p>You are <strong>{Math.ceil(leaseData.calculatedMonthsPending)}</strong> months behind.</p>
+                                                        <p>Total Due: ₱{leaseData.calculatedPendingPayment.toLocaleString()}</p>
                                                     </div>
                                                 </div>
                                             )}
-
                                             {leaseData.calculatedStatus === 'Up to date' && (
                                                 <div className="leasing-information-banner leasing-information-banner-uptodate">
-                                                    <CheckCircle className="leasing-information-icon-uptodate" size={24} />
+                                                    <CheckCircle size={24} />
                                                     <div className="leasing-information-banner-text-wrapper">
-                                                        <h4 className="leasing-information-banner-title-uptodate">Payment Up to Date</h4>
-                                                        <p className="leasing-information-banner-desc-uptodate">Covered until <strong>{displayDates.paidUntil}</strong>.</p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {leaseData.calculatedStatus === 'Advanced payment' && (
-                                                <div className="leasing-information-banner leasing-information-banner-advance">
-                                                    <CheckCircle className="leasing-information-icon-advance" size={24} />
-                                                    <div className="leasing-information-banner-text-wrapper">
-                                                        <h4 className="leasing-information-banner-title-advance">Advance Paid</h4>
-                                                        <p className="leasing-information-banner-desc-advance">You are ahead. Covered until <strong>{displayDates.paidUntil}</strong>.</p>
+                                                        <h4>Payment Up to Date</h4>
+                                                        <p>Covered until <strong>{displayDates.paidUntil}</strong>.</p>
                                                     </div>
                                                 </div>
                                             )}
@@ -227,11 +258,11 @@ export default function LeasingInformation() {
                                         <h3 className="leasing-information-payment-title"><CreditCard size={18} /> Payment Portal</h3>
                                         <div className="leasing-information-payment-details">
                                             <div className="leasing-information-wallet-row">
-                                                <span className="leasing-information-wallet-label">Wallet Balance</span>
+                                                <span>Wallet Balance</span>
                                                 <span className="leasing-information-wallet-amount">₱{walletBalance.toLocaleString()}</span>
                                             </div>
                                             <div className="leasing-information-divider"></div>
-                                            <label className="leasing-information-amount-label">Amount to Pay</label>
+                                            <label>Amount to Pay</label>
                                             <input
                                                 className="leasing-information-amount-input"
                                                 type="number"
@@ -244,13 +275,12 @@ export default function LeasingInformation() {
 
                                         <label className="leasing-information-advance-label">
                                             <input
-                                                className="leasing-information-advance-checkbox"
                                                 type="checkbox"
                                                 checked={advance}
                                                 disabled={isFullyPaid}
                                                 onChange={e => setAdvance(e.target.checked)}
                                             />
-                                            <span className="leasing-information-advance-text">Pay 1 Month Advance (₱{leaseData.monthlyRate.toLocaleString()})</span>
+                                            <span className="leasing-information-advance-text">Pay 1 Month Advance</span>
                                         </label>
 
                                         <button
@@ -260,7 +290,6 @@ export default function LeasingInformation() {
                                         >
                                             {isFullyPaid ? 'Fully Paid' : isProcessing ? 'Processing...' : `Pay ₱${amountToPay.toLocaleString()}`}
                                         </button>
-
                                         {amountToPay > walletBalance && !isFullyPaid && (
                                             <p className="leasing-information-error-text">Insufficient funds in wallet.</p>
                                         )}

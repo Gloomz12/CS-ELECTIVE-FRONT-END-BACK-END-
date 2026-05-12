@@ -2937,6 +2937,42 @@
   opacity: 0.5;
 }
 
+.leasing-information-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.leasing-info-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.leasing-info-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.leasing-info-history-btn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.leasing-info-history-btn svg {
+  color: #64748b;
+}
+
 /* My Properties ==================================================================================================*/
 
 .my-properties-container {
@@ -3674,4 +3710,156 @@
   height: 300px;
   font-weight: 500;
   color: #64748b;
+}
+
+/*Transaction History ==================================================================================================*/
+
+#transaction-history-root {
+  background-color: #f8f9fa;
+  height: auto;
+  max-height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.th-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  width:100%;
+}
+
+.th-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #edf2f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.th-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+#th-main-title {
+  margin: 0;
+  color: #1a202c;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.th-subtitle {
+  margin: 4px 0 0;
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+.th-btn-secondary {
+  background-color: #ffffff;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.th-btn-secondary:hover {
+  background-color: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.th-table-responsive {
+  overflow-x: auto;
+}
+
+.th-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.th-table th {
+  background-color: #f7fafc;
+  padding: 1rem 1.5rem;
+  color: #4a5568;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.th-table td {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid #edf2f7;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.th-row:hover {
+  background-color: #fdfdfd;
+}
+
+.th-property-name {
+  font-weight: 600;
+  color: #2b6cb0;
+  /* Deep Blue */
+}
+
+.th-type-tag {
+  background: #edf2f7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.th-col-amount {
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.th-currency {
+  margin-right: 2px;
+}
+
+.th-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-completed {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.badge-pending {
+  background-color: #feebc8;
+  color: #744210;
+}
+
+.badge-failed,
+.badge-cancelled {
+  background-color: #fed7d7;
+  color: #822727;
+}
+
+.th-loading,
+.th-error-message,
+.th-no-data {
+  padding: 3rem;
+  text-align: center;
+  color: #718096;
+}
+
+.th-error-message {
+  color: #e53e3e;
+  font-weight: 600;
 }

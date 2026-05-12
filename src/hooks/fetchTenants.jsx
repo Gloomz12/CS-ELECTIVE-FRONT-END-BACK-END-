@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-export default function useFetchTenants(propertyId) {
+export default function useFetchTenants(propertyId, currentUserId) {
     const [tenants, setTenants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -11,11 +11,12 @@ export default function useFetchTenants(propertyId) {
             return;
         }
 
-        setIsLoading(true); 
+        setIsLoading(true);
 
         try {
             const response = await axios.post("http://localhost/api/tenants/fetchTenants.php", {
-                property_id: propertyId
+                property_id: propertyId,
+                user_id: currentUserId
             });
 
             if (response.data.success) {
@@ -31,7 +32,7 @@ export default function useFetchTenants(propertyId) {
                     startDate: new Date(t.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
                     monthlyRate: parseFloat(t.monthly_rate)
                 }));
-                setTenants(formattedData);  
+                setTenants(formattedData);
                 console.log(response.data.data);
             }
         } catch (err) {
@@ -45,10 +46,10 @@ export default function useFetchTenants(propertyId) {
         fetchTenantsData();
     }, [fetchTenantsData]);
 
-    return { 
-        tenants, 
-        isLoading, 
-        setTenants, 
-        refetch: fetchTenantsData 
+    return {
+        tenants,
+        isLoading,
+        setTenants,
+        refetch: fetchTenantsData
     };
 }

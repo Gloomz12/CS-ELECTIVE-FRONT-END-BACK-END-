@@ -27,6 +27,8 @@ import InquiriesList from "./pages/inquiriesList";
 import MyPropertyDetailsView from "./pages/myPropertyDetailsView";
 import EditProperty from "./pages/editProperty";
 
+import TransactionHistory from "./pages/transactionHistory";
+import ViewTenantsTransaction from "./pages/viewTenantsTransaction";
 
 
 import ProtectedRoute from "./protected-route";
@@ -67,6 +69,9 @@ function App() {
           <Route path="my-properties/inquires-list" element={<InquiriesList />} />
           <Route path="my-properties/add-property" element={<AddProperty />} />
           <Route path="my-properties/details/:propertyName/edit-information" element={<EditProperty />} />
+
+          <Route path="transaction-history/:leaseId/:tenantId/:occupancy" element={<TransactionHistory />} />
+          <Route path="tenant-transaction-history/:ownerId/:propertyId/:occupancy" element={<ViewTenantsTransaction />} />
 
         </Route>
 

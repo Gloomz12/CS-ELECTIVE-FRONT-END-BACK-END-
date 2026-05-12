@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 // Icons
-import { ChevronLeft, User, Trash2 } from 'lucide-react';
+import { ChevronLeft, User, Trash2, History } from 'lucide-react';
 
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
@@ -23,8 +23,9 @@ export default function MyPropertyDetailsView() {
     const { showToast, setIsGlobalLoading } = useOutletContext();
 
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
-    const { tenants, isLoading, refetch } = useFetchTenants(currentProperty?.id);
+    const { tenants, isLoading, refetch } = useFetchTenants(currentProperty?.id, currentProperty.owner_id);
     const processedTenants = useManageLeasePendings(tenants);
+    console.log(processedTenants)
 
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
@@ -116,13 +117,9 @@ export default function MyPropertyDetailsView() {
 
             if (res && res.success) {
                 showToast(res.message, "success");
-                
                 if (typeof refetch === 'function') {
-                    refetch(); 
-                } else {
-                    console.warn("Warning: refetch is not a function. Check your useFetchTenants hook export.");
+                    refetch();
                 }
-                
             } else {
                 showToast(res?.message || "Failed to remove tenant", "error");
             }
@@ -132,6 +129,26 @@ export default function MyPropertyDetailsView() {
         } finally {
             setIsGlobalLoading(false);
         }
+    };
+
+    const handleViewHistory = (tenant) => {
+        const leaseData = {
+            id: tenant.id,
+            tenantId: tenant.tenant_id,
+            tenantName: tenant.tenantName,
+            propertyId: currentProperty.id,
+            ownerId: currentProperty.owner_id,
+            propertyName: currentProperty.name,
+            monthlyRate: tenant.monthlyRate,
+            unitOccupancy: tenant.occupancy
+        };
+
+
+        const occupancySlug = (tenant.occupancy || "n-a").toLowerCase().replace(/\s+/g, '-');
+
+        navigate(`/main/tenant-transaction-history/${leaseData.ownerId}/${leaseData.propertyId}/${occupancySlug}`, {
+            state: { leaseData }
+        });
     };
 
     if (!currentProperty) return <div className="page-layout">Property not found.</div>;
@@ -219,12 +236,23 @@ export default function MyPropertyDetailsView() {
                                                 </td>
                                                 <td className="property-details-td text-right">₱{tenant.totalPaid.toLocaleString()}</td>
                                                 <td className="property-details-td action-cell">
-                                                    <button
-                                                        className="action-icon-btn remove-tenant"
-                                                        onClick={() => handleRemoveTenantClick(tenant)}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    <div className="property-details-action-group">
+                                                        <button
+                                                            id={`view-history-btn-${tenant.id}`}
+                                                            className="action-icon-btn history property-details-history-btn"
+                                                            onClick={() => handleViewHistory(tenant)}
+                                                            title="View Transaction History"
+                                                        >
+                                                            <History size={16} />
+                                                        </button>
+                                                        <button
+                                                            className="action-icon-btn remove-tenant"
+                                                            onClick={() => handleRemoveTenantClick(tenant)}
+                                                            title="Remove Tenant"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

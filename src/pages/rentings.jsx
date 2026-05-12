@@ -3,7 +3,8 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 
 // HOOKS
 import useFetchRentings from '../hooks/fetchRentings.jsx';
-import useManageLeasePendings from '../hooks/useManageLeasePendings'; 
+import useManageLeasePendings from '../hooks/useManageLeasePendings';
+import useFetchTransactions from '../hooks/fetchTransaction.jsx'
 
 export default function Rentings() {
     const navigate = useNavigate();

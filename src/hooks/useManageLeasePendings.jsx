@@ -4,23 +4,26 @@ export default function useManageLeasePendings(tenants) {
     return useMemo(() => {
         if (!tenants || tenants.length === 0) return [];
 
+        console.log(tenants)
+
         const currentDate = new Date();
 
         return tenants.map((tenant) => {
-            const { 
-                startDate, 
-                monthlyRate, 
-                totalPaid, 
-                leaseTerm, 
-                totalDue 
+            const {
+                startDate,
+                monthlyRate,
+                totalPaid,
+                leaseTerm,
+                totalDue,
+                owner_id
             } = tenant;
 
             if (!startDate || !monthlyRate) return tenant;
 
             const start = new Date(startDate);
 
-            let requiredMonths = (currentDate.getFullYear() - start.getFullYear()) * 12 + 
-                                 (currentDate.getMonth() - start.getMonth());
+            let requiredMonths = (currentDate.getFullYear() - start.getFullYear()) * 12 +
+                (currentDate.getMonth() - start.getMonth());
 
             const lastDayOfCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
             const effectiveStartDay = Math.min(start.getDate(), lastDayOfCurrentMonth);
@@ -42,7 +45,7 @@ export default function useManageLeasePendings(tenants) {
                 displayPendingPayment = rawPendingPayment;
             } else if (rawPendingPayment < 0) {
                 status = "Advanced payment";
-                displayPendingPayment = 0; 
+                displayPendingPayment = 0;
             }
             return {
                 ...tenant,
