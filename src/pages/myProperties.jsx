@@ -36,6 +36,7 @@ export default function MyProperties() {
     }, [setIsGlobalLoading]);
 
     const ownedProperties = properties.filter(prop => String(prop.owner_id) === String(currentUser?.id));
+    console.log(ownedProperties)
 
     const pendingInquiries = allInquiries.filter(inquiry =>
         inquiry.status === 'pending' &&
