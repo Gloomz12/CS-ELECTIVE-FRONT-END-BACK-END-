@@ -1,0 +1,333 @@
+        :root {
+            --primary: #0d9488;
+            --primary-dark: #0f766e;
+            --secondary: #64748b;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        button {
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Listing Grid */
+        .listing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .property-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: transform 0.3s;
+        }
+
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .property-img-container {
+            height: 200px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #ddd;
+        }
+
+        .property-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        /* State Modifiers */
+        .status-available {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-occupied {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-unavailable {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .is-dimmed {
+            opacity: 0.6;
+            filter: grayscale(0.5);
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .price {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .btn-view {
+            width: 100%;
+            background: var(--text-main);
+            color: white;
+            padding: 10px;
+            margin-top: 1rem;
+        }
+
+        /* Forms */
+        .form-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        /* Rentings & Leasing */
+        .rent-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .leasing-alert {
+            background: #f0fdfa;
+            border: 1px solid #ccfbf1;
+            color: #115e59;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-size: 14px;
+        }
+
+        .bold {
+            font-weight: 700;
+        }
+
+        /* Property Management Toggle */
+        .status-toggle-group {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .status-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            background: white;
+            color: var(--text-muted);
+            border-right: 1px solid var(--border);
+        }
+
+        .status-btn:last-child {
+            border-right: none;
+        }
+
+        .status-btn.active-green {
+            background: #0d9488;
+            color: white;
+        }
+
+        .status-btn.active-amber {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-btn.active-red {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Inquiry Handling */
+        .inquiry-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .occupancy-modal {
+            background: #f8fafc;
+            border: 2px solid var(--primary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            /* Simplified for demo */
+        }
