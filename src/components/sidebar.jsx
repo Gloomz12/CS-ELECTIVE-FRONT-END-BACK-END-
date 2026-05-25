@@ -1,30 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 // Icons
 import { Home, Building, Calendar, ShieldCheck, LogOut, Wallet } from 'lucide-react';
 
-// Hooks
-import useFetchUser from '../hooks/fetchUser.jsx';
+// Services
+import { authService } from '../services/api';
+import { fetchCurrentUser } from '../services/handleUser';
 
 export default function Sidebar({ activeTab }) {
     const navigate = useNavigate();
-    const user = useFetchUser() || {};
+    const [user, setUser] = useState({});
 
-    const displayUsername = user.username 
-        ? user.username.length > 15 
-            ? `${user.username.substring(0, 15)}...` 
-            : user.username 
+    const loadUserProfile = async () => {
+        try {
+            const result = await fetchCurrentUser();
+            if (result) {
+                setUser(result);
+            }
+        } catch (error) {
+            console.error("Sidebar profiling sync error:", error);
+        }
+    };
+
+    useEffect(() => {
+        loadUserProfile();
+    }, []);
+
+    useEffect(() => {
+        const handleUserRefresh = () => {
+            loadUserProfile();
+        };
+
+        window.addEventListener('USER_UPDATE_EVENT', handleUserRefresh);
+        return () => {
+            window.removeEventListener('USER_UPDATE_EVENT', handleUserRefresh);
+        };
+    }, []);
+
+    const displayUsername = user?.username
+        ? user.username.length > 15
+            ? `${user.username.substring(0, 15)}...`
+            : user.username
         : "Guest User";
 
     const handleLogout = async () => {
         try {
-            await axios.get('http://localhost/api/auth/logout.php');
-            localStorage.clear();
-            window.location.href = '/';
+            await authService.logout();
         } catch (err) {
-            console.error('Logout failed:', err);
+            console.error('Logout request failed:', err);
+        } finally {
+            navigate('/login');
         }
     };
 
@@ -41,16 +67,16 @@ export default function Sidebar({ activeTab }) {
                 <div className="profile-upper">
                     <div className="avatar-wrapper">
                         <img
-                            src={user.profile_picture || "/images/defaultProfPic.png"} // Fixed to use profile_picture from DB
+                            src={user?.profile_picture || "/images/defaultProfPic.png"}
                             alt="User"
                             className="main-avatar"
+                            style={{ cursor: 'pointer' }}
                             onClick={() => navigate('/main/user-settings')}
                         />
                         <div className="online-indicator"></div>
                     </div>
                     <div className="profile-details">
-                        {/* Using the truncated username here */}
-                        <p className="profile-name" title={user.username}>{displayUsername}</p>
+                        <p className="profile-name" title={user?.username}>{displayUsername}</p>
                     </div>
                 </div>
 
@@ -60,7 +86,7 @@ export default function Sidebar({ activeTab }) {
                         <span>Current Balance</span>
                     </div>
                     <p className="balance-amount">
-                        {user.balance !== undefined ? `₱${Number(user.balance).toLocaleString()}` : "₱0.00"}
+                        {user?.balance !== undefined ? `₱${Number(user.balance).toLocaleString()}` : "₱0.00"}
                     </p>
                 </div>
             </div>

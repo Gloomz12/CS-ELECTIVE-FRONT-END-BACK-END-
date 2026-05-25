@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { authService } from "../services/api";
+
+const API_URL = "http://localhost/api/main.php?request=";
 
 function Register() {
     const navigate = useNavigate();
@@ -8,7 +11,7 @@ function Register() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [errorMessage, setErrorMessage] = useState(""); 
+    const [errorMessage, setErrorMessage] = useState("");
 
     const [validations, setValidations] = useState({
         upper: false,
@@ -34,50 +37,36 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrorMessage(""); 
+        setErrorMessage("");
 
         if (!isFormValid) return;
 
         try {
-            console.log("Submitting registration with:", { username, email, password });
-            const response = await axios.post("http://localhost/api/auth/register.php", {
-                username: username,
-                email: email,
-                password: password
+            const response = await authService.register({
+                username,
+                email,
+                password
             });
 
             if (response.data.success) {
                 alert("Registration successful!");
+                navigate("/login");
             } else {
-                setErrorMessage(response.data.message || "The email or username is already registered. Please try again.");
+                setErrorMessage(response.data.message || "Registration failed.");
             }
         } catch (err) {
-            console.error("Registration error:", err.response?.data?.message || "Registration failed");
-            setErrorMessage(err.response?.data?.message || "A network error occurred. Please try again.");
+            console.error("Registration error:", err);
+            setErrorMessage(err.response?.data?.message || "A network error occurred.");
         }
     };
 
     useEffect(() => {
         const checkConnection = async () => {
             try {
-                console.log("--- Connection Test Started ---");
-
-                const response = await axios.get("http://localhost/api/auth/register.php?test_connection=true");
-
-                console.log("Backend Status:", response.data.status);
-                console.log("Server Message:", response.data.message);
-                console.log("Full PHP Response:", response.data);
-                console.log("--- Connection Successful ---");
+                const response = await axios.get(`${API_URL}auth/register`);
+                console.log("Backend Router Status: Active");
             } catch (err) {
-                console.error("--- Connection Failed ---");
-                if (err.response) {
-                    console.error("PHP Error Code:", err.response.status);
-                    console.error("PHP Error Detail:", err.response.data);
-                } else if (err.request) {
-                    console.error("No response from PHP. Is Apache running in XAMPP?");
-                } else {
-                    console.error("Axios setup error:", err.message);
-                }
+                console.error("Backend Router Unreachable: Is Apache running?");
             }
         };
 

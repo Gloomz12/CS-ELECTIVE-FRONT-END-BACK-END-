@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { authService } from "../services/api";
 
 function Login() {
     const navigate = useNavigate();
@@ -12,56 +12,17 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
         try {
-            const response = await axios.post("http://localhost/api/auth/login.php", {
-                email: email,
-                password: password
-            });
-
+            const response = await authService.login({ email, password });
             if (response.data.success) {
-                localStorage.setItem("isLoggedIn", "true");
-                localStorage.setItem("userId", response.data.user_id);
-                localStorage.setItem("username", response.data.username);
-                navigate("/listings");
+                navigate("/main/home");
+            } else {
+                alert(response.data.message || "Login failed");
             }
         } catch (err) {
-            alert(err.response?.data?.message || "Invalid credentials");
+            alert("Login failed: Server unreachable");
         }
     };
-
-    useEffect(() => {
-        const verifyBackend = async () => {
-            const testUrl = "http://localhost/api/auth/login.php?test_connection=true";
-
-            console.log("%c--- System Connection Audit ---", "color: #2196F3; font-weight: bold;");
-
-            try {
-                const response = await axios.get(testUrl);
-
-                if (response.data.success) {
-                    console.log("%c✔ Backend Reachable", "color: #4CAF50;");
-                    console.log("Database Status:", response.data.database);
-                    console.log("Server Timestamp:", response.data.server_time);
-                }
-            } catch (err) {
-                console.error("%c✘ Connection Failed", "color: #F44336; font-weight: bold;");
-
-                if (err.response) {
-                    console.table({
-                        Status: err.response.status,
-                        Data: err.response.data,
-                        Source: "PHP Error"
-                    });
-                } else {
-                    console.error("XAMPP/Apache might be offline or URL is incorrect.");
-                }
-            }
-            console.log("%c-------------------------------", "color: #2196F3;");
-        };
-
-        verifyBackend();
-    }, []);
 
     return (
         <div className="auth-container">
