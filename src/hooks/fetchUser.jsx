@@ -9,11 +9,11 @@ export default function useFetchUser() {
     const [user, setUser] = useState({});
 
     const fetchUserProfile = useCallback(async () => {
-        const userId = localStorage.getItem("userId");
+        const userId = sessionStorage.getItem("userId");
         if (!userId) return;
 
         try {
-            const response = await axios.post("http://localhost/api/users/profile.php", {
+            const response = await axios.post("http://localhost/api-CS-Elective/users/profile.php", {
                 user_id: userId
             });
 

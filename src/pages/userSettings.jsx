@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { User, CheckCircle, Loader2 } from 'lucide-react';
 
 // Hooks
-import useFetchUser from '../hooks/fetchUser';
 import { triggerUserUpdate } from '../hooks/updateUser';
 
 // Services
-import { updateUserSettings } from '../services/handleUserSettings';
+import { userService } from '../services/api';
 
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
 
 export default function UserSettings() {
     const { showToast, setIsGlobalLoading } = useOutletContext();
-    const currentUser = useFetchUser();
-    const userId = localStorage.getItem("userId");
 
+    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+
+    const fileInputRef = useRef(null);
+    const [selectedFile, setSelectedFile] = useState(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
     const [formData, setFormData] = useState({
@@ -38,39 +39,80 @@ export default function UserSettings() {
     });
 
     useEffect(() => {
-        if (currentUser && Object.keys(currentUser).length > 0) {
-            let parsedPaymentMethods = {
-                gCash: false, payMaya: false, bankTransfer: false, cash: false
-            };
-
-            if (currentUser.payment_methods) {
-                try {
-                    const dbMethods = typeof currentUser.payment_methods === 'string'
-                        ? JSON.parse(currentUser.payment_methods)
-                        : currentUser.payment_methods;
-
-                    parsedPaymentMethods = { ...parsedPaymentMethods, ...dbMethods };
-                } catch (error) {
-                    console.error("Failed to parse payment methods", error);
-                }
-            }
-
-            setFormData({
-                username: currentUser.username || "",
-                legalName: currentUser.full_name || "",
-                phone: currentUser.phone_number || "",
-                dob: currentUser.date_of_birth || "",
-                address: currentUser.address || "",
-                country: currentUser.country || "",
-                gender: currentUser.gender || "Male",
-                balance: currentUser.balance ? parseFloat(currentUser.balance) : 0,
-                profPic: currentUser.profile_picture || "https://via.placeholder.com/150",
-                paymentMethods: parsedPaymentMethods
-            });
-
+        if (!userId) {
+            showToast("Session expired or invalid. Please log in again.", "error");
             setIsPageLoading(false);
+            return;
         }
-    }, [currentUser]);
+
+        const fetchUserData = async () => {
+            try {
+                const response = await userService.getProfile(userId);
+
+                if (response.data && response.data.success) {
+                    const currentUser = response.data.data || response.data;
+                    console.log(currentUser)
+
+                    let parsedPaymentMethods = {
+                        gCash: false, payMaya: false, bankTransfer: false, cash: false
+                    };
+
+                    if (currentUser.payment_methods) {
+                        try {
+                            const dbMethods = typeof currentUser.payment_methods === 'string'
+                                ? JSON.parse(currentUser.payment_methods)
+                                : currentUser.payment_methods;
+
+                            parsedPaymentMethods = { ...parsedPaymentMethods, ...dbMethods };
+                        } catch (error) {
+                            console.error("Failed to parse payment methods", error);
+                        }
+                    }
+                    console.log(userId)
+                    console.log(currentUser)
+
+                    setFormData({
+                        username: currentUser.username || "",
+                        legalName: currentUser.full_name || "",
+                        phone: currentUser.phone_number || "",
+                        dob: currentUser.date_of_birth || "",
+                        address: currentUser.address || "",
+                        country: currentUser.country || "",
+                        gender: currentUser.gender || "Male",
+                        balance: currentUser.balance ? parseFloat(currentUser.balance) : 0,
+                        profPic: currentUser.profile_picture || "https://via.placeholder.com/150",
+                        paymentMethods: parsedPaymentMethods
+                    });
+                } else {
+                    showToast(response.data?.message || "Failed to load user profile.", "error");
+                }
+            } catch (error) {
+                console.error("Profile load failure:", error);
+                showToast("Server unreachable while syncing profile data.", "error");
+            } finally {
+                setIsPageLoading(false);
+            }
+        };
+
+        fetchUserData();
+    }, [userId]);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            const previewUrl = URL.createObjectURL(file);
+            setFormData({
+                ...formData,
+                profPic: previewUrl
+            });
+            showToast(`Selected file: ${file.name}`, "success");
+        }
+    };
 
     const handlePaymentToggle = (method) => {
         setFormData({
@@ -84,7 +126,7 @@ export default function UserSettings() {
 
     const handleSaveClick = () => {
         if (!userId) {
-            showToast("Error: User ID not found.", "error");
+            showToast("Error: User ID session context not found.", "error");
             return;
         }
 
@@ -99,28 +141,46 @@ export default function UserSettings() {
 
     const executeSave = async () => {
         setModalConfig({ isOpen: false });
-        
-        setIsGlobalLoading(true); 
+        setIsGlobalLoading(true);
 
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+        const submissionPayload = new FormData();
+        submissionPayload.append('_method', 'PUT');
+        submissionPayload.append('user_id', userId);
+        submissionPayload.append('username', formData.username);
+        submissionPayload.append('full_name', formData.legalName);
+        submissionPayload.append('phone_number', formData.phone);
+        submissionPayload.append('date_of_birth', formData.dob);
+        submissionPayload.append('address', formData.address);
+        submissionPayload.append('country', formData.country);
+        submissionPayload.append('gender', formData.gender);
+        submissionPayload.append('payment_methods', JSON.stringify(formData.paymentMethods));
+
+        if (fileInputRef.current && fileInputRef.current.files.length > 0) {
+            const file = fileInputRef.current.files[0];
+            submissionPayload.append('profile_picture', file.name);
+            submissionPayload.append('profile_image', file);
+        } else {
+            const existingFilename = formData.profPic.split('/').pop();
+            submissionPayload.append('profile_picture', existingFilename);
+        }
 
         try {
-            const [result] = await Promise.all([
-                updateUserSettings(userId, formData),
-                minDelay
-            ]);
+            const response = await userService.updateProfile(submissionPayload);
 
-            if (result.success) {
+            if (response.data && response.data.success) {
                 showToast("Settings updated successfully!", "success");
                 triggerUserUpdate();
+                if (response.data.new_profPic) {
+                    setFormData(prev => ({ ...prev, profPic: response.data.new_profPic }));
+                    setSelectedFile(null);
+                }
             } else {
-                showToast("Failed to update: " + result.message, "error");
+                showToast("Update failed: " + (response.data?.message || "Unknown error"), "error");
             }
         } catch (error) {
-            showToast("An unexpected error occurred.", "error");
+            showToast("Error updating profile", "error");
         } finally {
-            // Stop Global Loading
-            setIsGlobalLoading(false); 
+            setIsGlobalLoading(false);
         }
     };
 
@@ -149,11 +209,23 @@ export default function UserSettings() {
 
                 <div className="profile-layout">
                     <div className="avatar-section">
-                        <img
-                            src={formData.profPic}
-                            alt="Profile"
-                            className="profile-avatar"
+                        <div className="profile-avatar-wrapper" onClick={handleAvatarClick}>
+                            <img
+                                src={formData.profPic}
+                                alt="Profile"
+                                className="profile-avatar"
+                            />
+                            <div className="avatar-overlay">Change Photo</div>
+                        </div>
+
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden-file-input"
+                            accept="image/*"
+                            onChange={handleFileChange}
                         />
+
                         <div className="balance-badge">
                             <p className="balance-label">Total Wallet Balance</p>
                             <p className="balance-amount">₱{formData.balance.toLocaleString()}</p>

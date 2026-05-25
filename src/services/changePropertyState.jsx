@@ -2,7 +2,7 @@ import React from "react";
 
 export const changePropertyState = async (propertyId, status) => {
     try {
-        const API_URL = 'http://localhost/api/properties/updatePropertyStatus.php';
+        const API_URL = 'http://localhost/api-CS-Elective/properties/updatePropertyStatus.php';
 
         const response = await fetch(API_URL, {
             method: 'POST',

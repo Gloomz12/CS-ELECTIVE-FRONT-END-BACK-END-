@@ -1,44 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Icons
 import { Home, Building, Calendar, ShieldCheck, LogOut, Wallet } from 'lucide-react';
 
 // Services
-import { authService } from '../services/api';
-import { fetchCurrentUser } from '../services/handleUser';
+import { authService, userService } from '../services/api';
+
+// Hook
+import { USER_UPDATE_EVENT } from '../hooks/updateUser'; 
 
 export default function Sidebar({ activeTab }) {
     const navigate = useNavigate();
     const [user, setUser] = useState({});
 
-    const loadUserProfile = async () => {
+    const fetchUserProfile = useCallback(async () => {
         try {
-            const result = await fetchCurrentUser();
-            if (result) {
-                setUser(result);
+            const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+            if (!userId) return; // Prevent unnecessary API calls if no token is found
+            
+            const response = await userService.getProfile(userId);
+            if (response.data && response.data.success) {
+                setUser(response.data.data);
+            } else if (response.data) {
+                setUser(response.data);
             }
-        } catch (error) {
-            console.error("Sidebar profiling sync error:", error);
+        } catch (err) {
+            console.error('Failed to load user profile in Sidebar:', err);
         }
-    };
-
-    useEffect(() => {
-        loadUserProfile();
     }, []);
 
     useEffect(() => {
-        const handleUserRefresh = () => {
-            loadUserProfile();
-        };
+        fetchUserProfile();
 
-        window.addEventListener('USER_UPDATE_EVENT', handleUserRefresh);
+        window.addEventListener(USER_UPDATE_EVENT, fetchUserProfile);
+
         return () => {
-            window.removeEventListener('USER_UPDATE_EVENT', handleUserRefresh);
+            window.removeEventListener(USER_UPDATE_EVENT, fetchUserProfile);
         };
-    }, []);
+    }, [fetchUserProfile]);
 
-    const displayUsername = user?.username
+    const displayUsername = user.username
         ? user.username.length > 15
             ? `${user.username.substring(0, 15)}...`
             : user.username
@@ -50,8 +52,26 @@ export default function Sidebar({ activeTab }) {
         } catch (err) {
             console.error('Logout request failed:', err);
         } finally {
-            navigate('/login');
+            navigate('/login'); 
         }
+    };
+
+    const defaultFallbackPic = process.env.PUBLIC_URL 
+        ? `${process.env.PUBLIC_URL}/images/defaultProfPic.png` 
+        : '/images/defaultProfPic.png';
+
+    const getAvatarSrc = () => {
+        if (!user.profile_picture) {
+            return defaultFallbackPic;
+        }
+
+        // If it's already an absolute URL link or explicitly sloped from root, return it
+        if (user.profile_picture.startsWith('http') || user.profile_picture.startsWith('/')) {
+            return user.profile_picture;
+        }
+
+        // Handles plain database string definitions cleanly across deeper page refreshes
+        return `/images/profilePics/${user.profile_picture}`;
     };
 
     return (
@@ -67,16 +87,19 @@ export default function Sidebar({ activeTab }) {
                 <div className="profile-upper">
                     <div className="avatar-wrapper">
                         <img
-                            src={user?.profile_picture || "/images/defaultProfPic.png"}
+                            src={getAvatarSrc()}
                             alt="User"
                             className="main-avatar"
-                            style={{ cursor: 'pointer' }}
                             onClick={() => navigate('/main/user-settings')}
+                            onError={(e) => {
+                                e.target.onerror = null; 
+                                e.target.src = user.profile_picture;
+                            }}
                         />
                         <div className="online-indicator"></div>
                     </div>
                     <div className="profile-details">
-                        <p className="profile-name" title={user?.username}>{displayUsername}</p>
+                        <p className="profile-name" title={user.username}>{displayUsername}</p>
                     </div>
                 </div>
 
@@ -86,7 +109,7 @@ export default function Sidebar({ activeTab }) {
                         <span>Current Balance</span>
                     </div>
                     <p className="balance-amount">
-                        {user?.balance !== undefined ? `₱${Number(user.balance).toLocaleString()}` : "₱0.00"}
+                        {user.balance !== undefined ? `₱${Number(user.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₱0.00"}
                     </p>
                 </div>
             </div>
@@ -133,4 +156,4 @@ export default function Sidebar({ activeTab }) {
             </div>
         </aside>
     );
-}
+}   

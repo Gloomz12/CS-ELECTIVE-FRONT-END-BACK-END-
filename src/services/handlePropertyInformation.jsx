@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost/api/properties/handlePropertyInformation.php';
+const API_URL = 'http://localhost/api-CS-Elective/properties/handlePropertyInformation.php';
 
 export const addPropertyToDB = async (propertyData) => {
     try {

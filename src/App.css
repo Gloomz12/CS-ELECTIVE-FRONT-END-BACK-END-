@@ -1304,6 +1304,10 @@
   opacity: 1;
 }
 
+.hidden-file-input {
+  display: none;
+}
+
 /*Home Page ==================================================================================================*/
 
 .home-dashboard-container {

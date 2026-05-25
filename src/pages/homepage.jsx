@@ -1,31 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import axios from 'axios';
 
 // Icons
 import { Wallet, Building, Users, Inbox, Calendar, FileText, Send, ArrowRight, AlertCircle } from 'lucide-react';
 
 // Hooks
-import useFetchUser from '../hooks/fetchUser';
-import useFetchProperties from '../hooks/fetchProperties';
-import useFetchRentings from '../hooks/fetchRentings';
 import useManageLeasePendings from '../hooks/useManageLeasePendings';
 
-// Services 
-import { fetchInquiries } from '../services/handleInquiries';
+// Services
+import { userService, propertyService, leaseService, tenantService, inquiryService } from '../services/api';
 
 export default function Home() {
     const navigate = useNavigate();
     const { setIsGlobalLoading } = useOutletContext();
 
-    const currentUser = useFetchUser();
-    const userId = currentUser?.id || localStorage.getItem("userId");
-    const allProperties = useFetchProperties();
-    const { rentings: allRentings } = useFetchRentings();
+    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
 
+    const [currentUser, setCurrentUser] = useState(null);
+    const [allProperties, setAllProperties] = useState([]);
+    const [allRentings, setAllRentings] = useState([]);
     const [allInquiries, setAllInquiries] = useState([]);
     const [allLandlordTenants, setAllLandlordTenants] = useState([]);
-    const [isLoadingTenants, setIsLoadingTenants] = useState(true);
 
     const myOwnedProperties = useMemo(() => {
         return allProperties?.filter(prop => String(prop.owner_id) === String(userId)) || [];
@@ -54,35 +49,56 @@ export default function Home() {
     }, [allRentings]));
 
     useEffect(() => {
+        if (!userId) return;
+
         const fetchDashboardData = async () => {
             setIsGlobalLoading(true);
             const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
             try {
-                const [inquiryData] = await Promise.all([
-                    fetchInquiries(),
-                    minDelay
+                const [profileRes, propertiesRes, leasesRes, inquiriesRes] = await Promise.all([
+                    userService.getProfile(userId),
+                    propertyService.getAll(),
+                    leaseService.getUserLeases(),
+                    inquiryService.getAll()
                 ]);
 
-                setAllInquiries(inquiryData || []);
+                if (profileRes.data && profileRes.data.success) {
+                    setCurrentUser(profileRes.data.data || profileRes.data);
+                }
 
-                if (myOwnedProperties.length > 0) {
-                    const tenantRequests = myOwnedProperties.map(prop =>
-                        axios.post("http://localhost/api/tenants/fetchTenants.php", { property_id: prop.id })
-                    );
-                    const responses = await Promise.all(tenantRequests);
-                    const aggregatedTenants = responses.flatMap(res => res.data.success ? res.data.data : []);
+                if (propertiesRes.data && propertiesRes.data.success) {
+                    setAllProperties(propertiesRes.data.data || []);
+                }
+
+                if (leasesRes.data && leasesRes.data.success) {
+                    setAllRentings(leasesRes.data.data || []);
+                }
+
+                if (inquiriesRes.data && inquiriesRes.data.success) {
+                    setAllInquiries(inquiriesRes.data.data || inquiriesRes.data);
+                } else if (inquiriesRes.data) {
+                    setAllInquiries(Array.isArray(inquiriesRes.data) ? inquiriesRes.data : inquiriesRes.data.data || []);
+                }
+
+                const ownedProps = propertiesRes.data?.data?.filter(prop => String(prop.owner_id) === String(userId)) || [];
+                if (ownedProps.length > 0) {
+                    const tenantRequests = ownedProps.map(prop => tenantService.getByPropertyId(prop.id));
+                    const tenantResponses = await Promise.all(tenantRequests);
+                    const aggregatedTenants = tenantResponses.flatMap(res => res.data && res.data.success ? res.data.data : []);
                     setAllLandlordTenants(aggregatedTenants);
                 }
+
+                await minDelay;
             } catch (error) {
-                console.error("Dashboard Data Fetch Error:", error);
+                console.error("Dashboard Unified Data Synchronization Failure:", error);
             } finally {
                 setIsGlobalLoading(false);
             }
         };
 
-        if (userId) fetchDashboardData();
-    }, [userId, myOwnedProperties, setIsGlobalLoading]);
+        fetchDashboardData();
+    }, [userId, setIsGlobalLoading]);
 
     const stats = useMemo(() => {
         const totalTenantsCount = processedLandlordTenants.length;

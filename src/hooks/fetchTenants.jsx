@@ -14,7 +14,7 @@ export default function useFetchTenants(propertyId, currentUserId) {
         setIsLoading(true);
 
         try {
-            const response = await axios.post("http://localhost/api/tenants/fetchTenants.php", {
+            const response = await axios.post("http://localhost/api-CS-Elective/tenants/fetchTenants.php", {
                 property_id: propertyId,
                 user_id: currentUserId
             });

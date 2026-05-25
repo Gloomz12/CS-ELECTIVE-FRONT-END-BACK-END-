@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 // Icons
@@ -7,13 +7,11 @@ import { ChevronLeft, User, Trash2, History } from 'lucide-react';
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
 
-// Hooks
-import useFetchTenants from "../hooks/fetchTenants";
-import useManageLeasePendings from "../hooks/useManageLeasePendings";
-
 // Services
-import { changePropertyState } from "../services/changePropertyState";
-import { deleteProperty, removeTenant } from "../services/propertyActions";
+import { propertyService, tenantService } from '../services/api';
+
+// Hooks
+import useManageLeasePendings from "../hooks/useManageLeasePendings";
 
 export default function MyPropertyDetailsView() {
     const navigate = useNavigate();
@@ -23,9 +21,57 @@ export default function MyPropertyDetailsView() {
     const { showToast, setIsGlobalLoading } = useOutletContext();
 
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
-    const { tenants, isLoading, refetch } = useFetchTenants(currentProperty?.id, currentProperty.owner_id);
+    const [tenants, setTenants] = useState([]);
+    const [isTenantsLoading, setIsTenantsLoading] = useState(true);
+    const [isPropertyLoading, setIsPropertyLoading] = useState(!currentProperty);
+
+    // Fetch fresh property details from database
+    const fetchPropertyDetails = useCallback(async () => {
+        // We look for an ID from current state, or parse it if available. 
+        // If state is completely lost on hard reload, we fall back to finding it or handling gracefully.
+        if (!currentProperty?.id) return;
+        try {
+            const res = await propertyService.getById(currentProperty.id);
+            if (res.data && res.data.success) {
+                setCurrentProperty(res.data.data);
+            } else if (res.data && !res.data.success && !location.state?.property) {
+                showToast(res.data.message || "Failed to sync property details", "error");
+            }
+        } catch (error) {
+            console.error("Failed to query fresh property information parameters:", error);
+        } finally {
+            setIsPropertyLoading(false);
+        }
+    }, [currentProperty?.id, location.state?.property, showToast]);
+
+    // Fetch tenants matching this property
+    const fetchPropertyTenants = useCallback(async () => {
+        if (!currentProperty?.id) return;
+        setIsTenantsLoading(true);
+        try {
+            const res = await tenantService.getByPropertyId(currentProperty.id);
+            if (res.data && res.data.success) {
+                setTenants(res.data.data || []);
+            } else if (Array.isArray(res.data)) {
+                setTenants(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to query property active lease directory:", error);
+            showToast("Failed to reload tenants listing", "error");
+        } finally {
+            setIsTenantsLoading(false);
+        }
+    }, [currentProperty?.id, showToast]);
+
+    // Initial synchronized mounting hook
+    useEffect(() => {
+        if (currentProperty?.id) {
+            fetchPropertyDetails();
+            fetchPropertyTenants();
+        }
+    }, [currentProperty?.id, fetchPropertyDetails, fetchPropertyTenants]);
+
     const processedTenants = useManageLeasePendings(tenants);
-    console.log(processedTenants)
 
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
@@ -44,14 +90,15 @@ export default function MyPropertyDetailsView() {
         if (currentProperty.status === newStatus) return;
         setIsGlobalLoading(true);
         try {
-            const result = await changePropertyState(currentProperty.id, newStatus);
-            if (result.success) {
+            const response = await propertyService.updateStatus(currentProperty.id, newStatus);
+            if (response.data && response.data.success) {
                 setCurrentProperty(prev => ({ ...prev, status: newStatus }));
                 showToast("Status updated successfully", "success");
             } else {
-                showToast(result.message, "error");
+                showToast(response.data?.message || "Failed to alter status state", "error");
             }
         } catch (error) {
+            console.error("Status Change Failure Context:", error);
             showToast("Failed to update status", "error");
         } finally {
             setIsGlobalLoading(false);
@@ -78,12 +125,12 @@ export default function MyPropertyDetailsView() {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
         try {
-            const res = await deleteProperty(currentProperty.id);
-            if (res.success) {
+            const res = await propertyService.deleteProperty(currentProperty.id);
+            if (res.data && res.data.success) {
                 showToast("Property deleted successfully", "success");
                 navigate('/main/my-properties');
             } else {
-                showToast(res.message, "error");
+                showToast(res.data?.message || "Property elimination rejected by controller.", "error");
             }
         } catch (err) {
             showToast("An error occurred during deletion", "error");
@@ -106,26 +153,23 @@ export default function MyPropertyDetailsView() {
     const executeRemoveTenant = async (tenantId) => {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-
         const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
         try {
             const [res] = await Promise.all([
-                removeTenant(tenantId),
+                tenantService.removeTenant(tenantId),
                 minDelay
             ]);
 
-            if (res && res.success) {
-                showToast(res.message, "success");
-                if (typeof refetch === 'function') {
-                    refetch();
-                }
+            if (res.data && res.data.success) {
+                showToast(res.data.message || "Tenant removed successfully", "success");
+                fetchPropertyTenants();
             } else {
-                showToast(res?.message || "Failed to remove tenant", "error");
+                showToast(res.data?.message || "Failed to remove tenant", "error");
             }
         } catch (err) {
             console.error("Frontend Crash in executeRemoveTenant:", err);
-            showToast("An unexpected application error occurred. Check console.", "error");
+            showToast("An unexpected application error occurred.", "error");
         } finally {
             setIsGlobalLoading(false);
         }
@@ -143,16 +187,14 @@ export default function MyPropertyDetailsView() {
             unitOccupancy: tenant.occupancy
         };
 
-
         const occupancySlug = (tenant.occupancy || "n-a").toLowerCase().replace(/\s+/g, '-');
-
         navigate(`/main/tenant-transaction-history/${leaseData.ownerId}/${leaseData.propertyId}/${occupancySlug}`, {
             state: { leaseData }
         });
     };
 
-    if (!currentProperty) return <div className="page-layout">Property not found.</div>;
-    if (isLoading) return <div className="loading-spinner">Loading...</div>;
+    if (!currentProperty && !isPropertyLoading) return <div className="page-layout">Property not found.</div>;
+    if (isTenantsLoading || isPropertyLoading) return <div className="loading-spinner">Loading...</div>;
 
     return (
         <div className="page-layout" id="property-details-view">

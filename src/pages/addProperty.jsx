@@ -1,26 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft } from 'lucide-react';
-
-// Hooks
-import useFetchUser from '../hooks/fetchUser.jsx';
-import { addPropertyToDB } from '../services/handlePropertyInformation';
-
-// Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
+import { userService, propertyService } from '../services/api.jsx';
 
 export default function AddProperty() {
     const navigate = useNavigate();
     const { showToast, setIsGlobalLoading } = useOutletContext();
-    const user = useFetchUser() || {};
-
+    const [user, setUser] = useState({});
     const [form, setForm] = useState({
         name: '', type: 'condo', location: '', price: '',
         amenities: '', locationImg: '',
         image1: '', image2: '', image3: '', image4: '', image5: ''
     });
-
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await userService.getProfile();
+                setUser(res.data);
+            } catch (err) {
+                console.error("Failed to fetch user");
+            }
+        };
+        fetchUser();
+    }, []);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -36,31 +41,24 @@ export default function AddProperty() {
     const executeSubmit = async () => {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
         const validImages = [form.image1, form.image2, form.image3, form.image4, form.image5]
             .map(s => s.trim())
             .filter(s => s !== '');
 
-        if (validImages.length === 0) {
-            validImages.push('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80');
-        }
-
         const newProp = {
-            id: 'p_' + Date.now(),
-            ...form,
-            price: Number(form.price),
-            status: 'available',
-            amenities: form.amenities.split(',').map(s => s.trim()),
-            images: validImages,
+            owner_id: user.id,
+            name: form.name,
+            type: form.type,
+            price_monthly: Number(form.price),
+            location_address: form.location,
             image_url: validImages.join('|'),
-            locationImg: form.locationImg.trim() || 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80',
-            ownerId: user.id,
-            ownerName: user.username
+            map_image_url: form.locationImg.trim() || 'https://images.unsplash.com/photo-1524661135-423995f22d0b',
+            amenities: form.amenities
         };
 
         try {
-            await Promise.all([addPropertyToDB(newProp), minDelay]);
+            await propertyService.addProperty(newProp);
             showToast('Property listed successfully!', 'success');
             navigate('/main/my-properties');
         } catch (error) {
@@ -83,7 +81,6 @@ export default function AddProperty() {
                                 </button>
                                 <h2 className="property-form-title">Post a New Property</h2>
                             </div>
-
                             <form onSubmit={handleFormSubmit}>
                                 <div className="property-form-grid">
                                     <div className="property-form-group property-form-col-span-2">
@@ -108,13 +105,13 @@ export default function AddProperty() {
                                         <input required type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="property-form-input" />
                                     </div>
                                     <div className="property-form-group property-form-col-span-2">
-                                        <label className="property-form-label">Amenities (commas)</label>
-                                        <input placeholder="WiFi, Pool, Gym" type="text" value={form.amenities} onChange={e => setForm({ ...form, amenities: e.target.value })} className="property-form-input" />
+                                        <label className="property-form-label">Amenities</label>
+                                        <input type="text" value={form.amenities} onChange={e => setForm({ ...form, amenities: e.target.value })} className="property-form-input" />
                                     </div>
                                     {[1, 2, 3, 4, 5].map(num => (
                                         <div key={num} className="property-form-group property-form-col-span-2">
-                                            <label className="property-form-label">Image URL {num} {num === 1 && '(Main)'}</label>
-                                            <textarea rows={2} value={form[`image${num}`]} onChange={e => setForm({ ...form, [`image${num}`]: e.target.value })} className="property-form-textarea" placeholder="https://..." />
+                                            <label className="property-form-label">Image URL {num}</label>
+                                            <textarea rows={2} value={form[`image${num}`]} onChange={e => setForm({ ...form, [`image${num}`]: e.target.value })} className="property-form-textarea" />
                                         </div>
                                     ))}
                                     <div className="property-form-group property-form-col-span-2">

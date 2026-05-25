@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const updateUserSettings = async (userId, formData) => {
     try {
-        const response = await axios.post("http://localhost/api/users/handleUserSettings.php", {
+        const response = await axios.post("http://localhost/api-CS-Elective/users/handleUserSettings.php", {
             user_id: userId,
             username: formData.username,
             full_name: formData.legalName,

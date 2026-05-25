@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import axios from 'axios';
 
 // COMPONENTS
 import Header from '../components/header.jsx';
 import Sidebar from '../components/sidebar.jsx';
 
-// HOOKS
-import useFetchUser from '../hooks/fetchUser.jsx';
-import UseFetchProperties from '../hooks/fetchProperties.jsx';
+// SERVICES
+import { userService, propertyService } from '../services/api';
 
 // ICONS
 import { MapPin } from 'lucide-react';
@@ -16,25 +14,47 @@ import { MapPin } from 'lucide-react';
 export default function Listings() {
     const navigate = useNavigate();
     const { setIsGlobalLoading } = useOutletContext(); 
-    const properties = UseFetchProperties();
-    const user = useFetchUser();
 
+    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+
+    const [properties, setProperties] = useState([]);
+    const [user, setUser] = useState(null);
     const [category, setCategory] = useState('all');
     const [sortOrder, setSortOrder] = useState('none');
 
     const categories = ['all', 'condo', 'dorm', 'bedspace', 'boarding house'];
 
     useEffect(() => {
-        let timer;
-        if (!properties || properties.length === 0) {
+        const fetchListingsData = async () => {
             setIsGlobalLoading(true);
-        } else {
-            timer = setTimeout(() => {
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+
+            try {
+                const [profileRes, propertiesRes] = await Promise.all([
+                    userService.getProfile(userId),
+                    propertyService.getAll()
+                ]);
+
+                if (profileRes.data && profileRes.data.success) {
+                    setUser(profileRes.data.data || profileRes.data);
+                }
+
+                if (propertiesRes.data && propertiesRes.data.success) {
+                    setProperties(propertiesRes.data.data || []);
+                } else if (propertiesRes.data) {
+                    setProperties(Array.isArray(propertiesRes.data) ? propertiesRes.data : propertiesRes.data.data || []);
+                }
+
+                await minDelay;
+            } catch (error) {
+                console.error("Listings Data Synchronization Failure:", error);
+            } finally {
                 setIsGlobalLoading(false);
-            }, 1000);
-        }
-        return () => clearTimeout(timer);
-    }, [properties, setIsGlobalLoading]);
+            }
+        };
+
+        fetchListingsData();
+    }, [userId, setIsGlobalLoading]);
 
     const filtered = Array.isArray(properties) ? properties.filter(p => {
         const matchesCategory = category === 'all' || p.type === category;

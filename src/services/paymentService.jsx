@@ -5,7 +5,7 @@ const API_BASE_URL = '';
 export const PaymentService = {
     processPropertyPayment: async (paymentData) => {
         try {
-            const response = await axios.post(`http://localhost/api/rentings/processPayment.php`, paymentData);
+            const response = await axios.post(`http://localhost/api-CS-Elective/rentings/processPayment.php`, paymentData);
             console.log("payment success")
             return response.data;
         } catch (error) {
