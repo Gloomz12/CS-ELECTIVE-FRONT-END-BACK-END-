@@ -22,13 +22,11 @@ export default function MyPropertyDetailsView() {
 
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
     const [tenants, setTenants] = useState([]);
+    console.log(tenants);
     const [isTenantsLoading, setIsTenantsLoading] = useState(true);
     const [isPropertyLoading, setIsPropertyLoading] = useState(!currentProperty);
 
-    // Fetch fresh property details from database
     const fetchPropertyDetails = useCallback(async () => {
-        // We look for an ID from current state, or parse it if available. 
-        // If state is completely lost on hard reload, we fall back to finding it or handling gracefully.
         if (!currentProperty?.id) return;
         try {
             const res = await propertyService.getById(currentProperty.id);
@@ -44,7 +42,6 @@ export default function MyPropertyDetailsView() {
         }
     }, [currentProperty?.id, location.state?.property, showToast]);
 
-    // Fetch tenants matching this property
     const fetchPropertyTenants = useCallback(async () => {
         if (!currentProperty?.id) return;
         setIsTenantsLoading(true);
@@ -63,7 +60,6 @@ export default function MyPropertyDetailsView() {
         }
     }, [currentProperty?.id, showToast]);
 
-    // Initial synchronized mounting hook
     useEffect(() => {
         if (currentProperty?.id) {
             fetchPropertyDetails();
@@ -178,7 +174,7 @@ export default function MyPropertyDetailsView() {
     const handleViewHistory = (tenant) => {
         const leaseData = {
             id: tenant.id,
-            tenantId: tenant.tenant_id,
+            tenantId: tenant.tenant_id || tenant.tenantId,
             tenantName: tenant.tenantName,
             propertyId: currentProperty.id,
             ownerId: currentProperty.owner_id,
@@ -186,6 +182,7 @@ export default function MyPropertyDetailsView() {
             monthlyRate: tenant.monthlyRate,
             unitOccupancy: tenant.occupancy
         };
+        console.log(leaseData)
 
         const occupancySlug = (tenant.occupancy || "n-a").toLowerCase().replace(/\s+/g, '-');
         navigate(`/main/tenant-transaction-history/${leaseData.ownerId}/${leaseData.propertyId}/${occupancySlug}`, {
@@ -252,6 +249,7 @@ export default function MyPropertyDetailsView() {
                                     <thead>
                                         <tr>
                                             <th className="property-details-th">Tenant Name</th>
+                                            <th className="property-details-th">Unit Occupancy</th>
                                             <th className="property-details-th">Start Date</th>
                                             <th className="property-details-th">Lease Term</th>
                                             <th className="property-details-th text-right">Monthly Rate</th>
@@ -265,6 +263,7 @@ export default function MyPropertyDetailsView() {
                                         {processedTenants.map((tenant) => (
                                             <tr key={tenant.id}>
                                                 <td className="property-details-td tenant-name">{tenant.tenantName}</td>
+                                                <td className="property-details-td">{tenant.occupancy || "N/A"}</td>
                                                 <td className="property-details-td">{formatDate(tenant.startDate)}</td>
                                                 <td className="property-details-td">{tenant.leaseTerm} months</td>
                                                 <td className="property-details-td text-right">₱{Number(tenant.monthlyRate || 0).toLocaleString()}</td>
@@ -299,7 +298,9 @@ export default function MyPropertyDetailsView() {
                                             </tr>
                                         ))}
                                         {processedTenants.length === 0 && (
-                                            <tr><td colSpan="8" className="property-details-empty-row">No active tenants.</td></tr>
+                                            <tr>
+                                                <td colSpan="9" className="property-details-empty-row">No active tenants.</td>
+                                            </tr>
                                         )}
                                     </tbody>
                                 </table>

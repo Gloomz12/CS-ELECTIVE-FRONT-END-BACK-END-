@@ -8,24 +8,44 @@ export default function AddProperty() {
     const navigate = useNavigate();
     const { showToast, setIsGlobalLoading } = useOutletContext();
     const [user, setUser] = useState({});
+
+    // Store image filenames in the form state
     const [form, setForm] = useState({
         name: '', type: 'condo', location: '', price: '',
         amenities: '', locationImg: '',
         image1: '', image2: '', image3: '', image4: '', image5: ''
     });
+
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const res = await userService.getProfile();
-                setUser(res.data);
+                setUser(res.data.data || res.data);
             } catch (err) {
                 console.error("Failed to fetch user");
             }
         };
         fetchUser();
     }, []);
+
+    const handleMultipleImages = (e) => {
+        const files = Array.from(e.target.files);
+        const selected = files.slice(0, 5);
+        const newForm = { ...form };
+        selected.forEach((file, index) => {
+            newForm[`image${index + 1}`] = `/images/properties/${file.name}`;
+        });
+        setForm(newForm);
+    };
+
+    const handleMapFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const fileName = e.target.files[0].name;
+            setForm(prev => ({ ...prev, locationImg: `/images/maps/${fileName}` }));
+        }
+    };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -53,7 +73,7 @@ export default function AddProperty() {
             price_monthly: Number(form.price),
             location_address: form.location,
             image_url: validImages.join('|'),
-            map_image_url: form.locationImg.trim() || 'https://images.unsplash.com/photo-1524661135-423995f22d0b',
+            map_image_url: form.locationImg.trim() || '/images/maps/default.png',
             amenities: form.amenities
         };
 
@@ -108,15 +128,39 @@ export default function AddProperty() {
                                         <label className="property-form-label">Amenities</label>
                                         <input type="text" value={form.amenities} onChange={e => setForm({ ...form, amenities: e.target.value })} className="property-form-input" />
                                     </div>
-                                    {[1, 2, 3, 4, 5].map(num => (
-                                        <div key={num} className="property-form-group property-form-col-span-2">
-                                            <label className="property-form-label">Image URL {num}</label>
-                                            <textarea rows={2} value={form[`image${num}`]} onChange={e => setForm({ ...form, [`image${num}`]: e.target.value })} className="property-form-textarea" />
+
+                                    <div className="property-form-group property-form-col-span-2" id="image-upload-section">
+                                        <label className="property-form-label">Property Images (Select up to 5)</label>
+                                        <div className="upload-container">
+                                            <label htmlFor="multi-image-input" className="custom-upload-btn">Choose Images</label>
+                                            <input id="multi-image-input" type="file" multiple accept="image/*" onChange={handleMultipleImages} hidden />
                                         </div>
-                                    ))}
-                                    <div className="property-form-group property-form-col-span-2">
-                                        <label className="property-form-label">Map Image URL</label>
-                                        <input type="text" value={form.locationImg} onChange={e => setForm({ ...form, locationImg: e.target.value })} className="property-form-input" />
+
+                                        <div className="preview-grid">
+                                            {[1, 2, 3, 4, 5].map(num => form[`image${num}`] && (
+                                                <div key={num} className="image-preview-card">
+                                                    <img src={form[`image${num}`]} alt={`Preview ${num}`} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="property-form-group property-form-col-span-2" id="map-upload-section">
+                                        <label className="property-form-label">Map Location</label>
+                                        <div className="upload-container">
+                                            <label htmlFor="map-input" className="custom-upload-btn">Upload Map Image</label>
+                                            <input id="map-input" type="file" accept="image/*" onChange={handleMapFileChange} hidden />
+                                        </div>
+                                        {form.locationImg && (
+                                            <div className="map-preview-card">
+                                                <img
+                                                    src={form.locationImg}
+                                                    alt="Map Preview"
+                                                    onError={(e) => e.target.style.display = 'none'}
+                                                />
+                                                <p className="file-path-text">Path: {form.locationImg}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <button type="submit" className="property-form-submit-btn">Publish Listing</button>

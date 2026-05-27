@@ -8,7 +8,7 @@ import { Home, Building, Calendar, ShieldCheck, LogOut, Wallet } from 'lucide-re
 import { authService, userService } from '../services/api';
 
 // Hook
-import { USER_UPDATE_EVENT } from '../hooks/updateUser'; 
+import { USER_UPDATE_EVENT } from '../hooks/updateUser';
 
 export default function Sidebar({ activeTab }) {
     const navigate = useNavigate();
@@ -17,8 +17,9 @@ export default function Sidebar({ activeTab }) {
     const fetchUserProfile = useCallback(async () => {
         try {
             const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
-            if (!userId) return; // Prevent unnecessary API calls if no token is found
-            
+            console.log(userId)
+            if (!userId) return;
+
             const response = await userService.getProfile(userId);
             if (response.data && response.data.success) {
                 setUser(response.data.data);
@@ -29,6 +30,8 @@ export default function Sidebar({ activeTab }) {
             console.error('Failed to load user profile in Sidebar:', err);
         }
     }, []);
+
+    console.log(user)
 
     useEffect(() => {
         fetchUserProfile();
@@ -52,26 +55,12 @@ export default function Sidebar({ activeTab }) {
         } catch (err) {
             console.error('Logout request failed:', err);
         } finally {
-            navigate('/login'); 
+            navigate('/login');
         }
     };
 
-    const defaultFallbackPic = process.env.PUBLIC_URL 
-        ? `${process.env.PUBLIC_URL}/images/defaultProfPic.png` 
-        : '/images/defaultProfPic.png';
-
     const getAvatarSrc = () => {
-        if (!user.profile_picture) {
-            return defaultFallbackPic;
-        }
-
-        // If it's already an absolute URL link or explicitly sloped from root, return it
-        if (user.profile_picture.startsWith('http') || user.profile_picture.startsWith('/')) {
-            return user.profile_picture;
-        }
-
-        // Handles plain database string definitions cleanly across deeper page refreshes
-        return `/images/profilePics/${user.profile_picture}`;
+        return user.profile_picture;
     };
 
     return (
@@ -87,14 +76,10 @@ export default function Sidebar({ activeTab }) {
                 <div className="profile-upper">
                     <div className="avatar-wrapper">
                         <img
-                            src={getAvatarSrc()}
+                            src={user.profile_picture || "/images/defaultProfPic.png"}
                             alt="User"
                             className="main-avatar"
                             onClick={() => navigate('/main/user-settings')}
-                            onError={(e) => {
-                                e.target.onerror = null; 
-                                e.target.src = user.profile_picture;
-                            }}
                         />
                         <div className="online-indicator"></div>
                     </div>

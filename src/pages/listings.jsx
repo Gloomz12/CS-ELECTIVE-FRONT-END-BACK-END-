@@ -71,6 +71,8 @@ export default function Listings() {
         return 0;
     });
 
+    console.log(sortedProperties)
+
     const getFirstImage = (urlData) => {
         if (!urlData) return "/images/defaultProperty.png";
         try {

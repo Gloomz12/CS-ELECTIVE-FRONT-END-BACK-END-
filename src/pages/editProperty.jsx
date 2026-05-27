@@ -1,34 +1,36 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
-import { ChevronLeft } from 'lucide-react';
 
-// Services
-import { updatePropertyInDB } from '../services/handlePropertyInformation';
+// Icons
+import { ChevronLeft } from 'lucide-react';
 
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
 
+// Services
+import { propertyService } from '../services/api.jsx';
+
+
 export default function EditProperty() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { propertyName } = useParams();
     const { showToast, setIsGlobalLoading } = useOutletContext();
 
     const property = location.state?.property;
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
     let imageslist = [];
-    if (property) {
-        const url = property.image_url;
-        if (typeof url === 'string') {
-            imageslist = url.includes('|') ? url.split('|').map(u => u.trim()) : [url];
-        } else {
-            imageslist = url || [];
-        }
+    if (property?.image_url) {
+        imageslist = typeof property.image_url === 'string' 
+            ? property.image_url.split('|').map(u => u.trim()) 
+            : property.image_url;
     }
 
     const [editForm, setEditForm] = useState({
         ...property,
+        price: property?.price_monthly || '', 
+        location: property?.location_address || '', 
+        locationImg: property?.map_image_url || '', 
         amenities: Array.isArray(property?.amenities) ? property.amenities.join(', ') : (property?.amenities || ''),
         image1: imageslist[0] || '',
         image2: imageslist[1] || '',
@@ -38,6 +40,24 @@ export default function EditProperty() {
     });
 
     if (!property) return <p>Not found. <button onClick={() => navigate('/main/my-properties')}>Go Back</button></p>;
+
+    const handleMultipleImages = (e) => {
+        const files = Array.from(e.target.files).slice(0, 5);
+        const newForm = { ...editForm };
+        // Reset current images
+        for (let i = 1; i <= 5; i++) newForm[`image${i}`] = '';
+        
+        files.forEach((file, index) => {
+            newForm[`image${index + 1}`] = `/images/properties/${file.name}`;
+        });
+        setEditForm(newForm);
+    };
+
+    const handleMapFileChange = (e) => {
+        if (e.target.files[0]) {
+            setEditForm(prev => ({ ...prev, locationImg: `/images/maps/${e.target.files[0].name}` }));
+        }
+    };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -53,24 +73,25 @@ export default function EditProperty() {
     const executeSaveEdit = async () => {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
 
         const validImages = [editForm.image1, editForm.image2, editForm.image3, editForm.image4, editForm.image5]
             .map(s => s.trim())
             .filter(s => s !== '');
 
         const updatedProp = {
-            ...property,
-            ...editForm,
-            price: Number(editForm.price),
-            amenities: editForm.amenities.split(',').map(s => s.trim()),
-            images: validImages,
-            image_url: validImages.join('|')
+            id: property.id,
+            name: editForm.name,
+            type: editForm.type,
+            price_monthly: Number(editForm.price),
+            location_address: editForm.location,
+            map_image_url: editForm.locationImg,
+            image_url: validImages.join('|'),
+            amenities: editForm.amenities
         };
 
         try {
-            await Promise.all([updatePropertyInDB(updatedProp), minDelay]);
-            showToast('Property listed successfully!', 'success');
+            await propertyService.updateProperty(property.id, updatedProp);
+            showToast('Property updated successfully!', 'success');
             navigate('/main/my-properties');
         } catch (error) {
             showToast('Failed to edit property.', 'error');
@@ -120,15 +141,35 @@ export default function EditProperty() {
                                         <label className="property-form-label">Amenities</label>
                                         <input type="text" value={editForm.amenities} onChange={e => setEditForm({ ...editForm, amenities: e.target.value })} className="property-form-input" />
                                     </div>
-                                    {[1, 2, 3, 4, 5].map(num => (
-                                        <div key={num} className="property-form-group property-form-col-span-2">
-                                            <label className="property-form-label">Image URL {num}</label>
-                                            <textarea rows={2} value={editForm[`image${num}`]} onChange={e => setEditForm({ ...editForm, [`image${num}`]: e.target.value })} className="property-form-textarea" />
+
+                                    {/* Updated Image Upload Section */}
+                                    <div className="property-form-group property-form-col-span-2" id="image-upload-section">
+                                        <label className="property-form-label">Property Images</label>
+                                        <div className="upload-container">
+                                            <label htmlFor="multi-image-input" className="custom-upload-btn">Change Images</label>
+                                            <input id="multi-image-input" type="file" multiple accept="image/*" onChange={handleMultipleImages} hidden />
                                         </div>
-                                    ))}
-                                    <div className="property-form-group property-form-col-span-2">
-                                        <label className="property-form-label">Map Image URL</label>
-                                        <input type="text" value={editForm.locationImg} onChange={e => setEditForm({ ...editForm, locationImg: e.target.value })} className="property-form-input" />
+                                        <div className="preview-grid">
+                                            {[1, 2, 3, 4, 5].map(num => editForm[`image${num}`] && (
+                                                <div key={num} className="image-preview-card">
+                                                    <img src={editForm[`image${num}`]} alt={`Preview ${num}`} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="property-form-group property-form-col-span-2" id="map-upload-section">
+                                        <label className="property-form-label">Map Location</label>
+                                        <div className="upload-container">
+                                            <label htmlFor="map-input" className="custom-upload-btn">Change Map Image</label>
+                                            <input id="map-input" type="file" accept="image/*" onChange={handleMapFileChange} hidden />
+                                        </div>
+                                        {editForm.locationImg && (
+                                            <div className="map-preview-card">
+                                                <img src={editForm.locationImg} alt="Map Preview" onError={(e) => e.target.style.display = 'none'} />
+                                                <p className="file-path-text">{editForm.locationImg}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <button type="submit" className="property-form-submit-btn">Save Changes</button>

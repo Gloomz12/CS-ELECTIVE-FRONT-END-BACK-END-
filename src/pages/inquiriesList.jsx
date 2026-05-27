@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
-// Hooks
-import UseFetchProperties from '../hooks/fetchProperties';
-import fetchUser from '../hooks/fetchUser.jsx';
-import { triggerBalanceUpdate } from '../hooks/updateBalance.jsx';
+// Services 
+import { userService, propertyService, inquiryService } from '../services/api.jsx';
 
-// Services
-import { fetchInquiries, acceptInquiry, declineInquiry } from '../services/handleInquiries';
+// Hooks
+import { USER_UPDATE_EVENT } from '../hooks/updateUser';
 
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
@@ -21,30 +19,51 @@ export default function InquiriesList() {
     const [acceptingId, setAcceptingId] = useState(null);
     const [occupancyDetails, setOccupancyDetails] = useState('');
     const [inquiries, setInquiries] = useState([]);
+    const [properties, setProperties] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
-    const loadInquiries = async () => {
+    const loadInitialData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await fetchInquiries();
-            setInquiries(Array.isArray(data) ? data : []);
+            const storedUserId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+
+            const [userRes, propRes, inqRes] = await Promise.all([
+                userService.getProfile(storedUserId).catch(() => ({ data: null })),
+                propertyService.getAll().catch(() => ({ data: null })),
+                inquiryService.getAll().catch(() => ({ data: null }))
+            ]);
+
+            if (userRes?.data) setCurrentUser(userRes.data?.data || userRes.data);
+            if (propRes?.data) {
+                const rawProperties = propRes.data?.data || (Array.isArray(propRes.data) ? propRes.data : []);
+                setProperties(rawProperties);
+            }
+            if (inqRes?.data) {
+                const rawInquiries = inqRes.data?.data || (Array.isArray(inqRes.data) ? inqRes.data : []);
+                setInquiries(rawInquiries);
+            }
         } catch (error) {
-            console.error("Fetch Inquiries Error:", error);
-            showToast("Failed to load inquiries.", "error");
+            console.error("Dashboard Data Aggregation Failure:", error);
+            showToast("Failed to load pending configuration records.", "error");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [showToast]);
 
-    const currentUser = fetchUser();
-    const properties = UseFetchProperties();
+    useEffect(() => { loadInitialData(); }, [loadInitialData]);
 
-    const ownedProperties = properties.filter(prop => String(prop.owner_id) === String(currentUser?.id));
+    const ownedProperties = useMemo(() => {
+        const activeUserId = currentUser?.id || sessionStorage.getItem("userId") || localStorage.getItem("userId");
+        return properties.filter(prop => String(prop.owner_id) === String(activeUserId));
+    }, [properties, currentUser]);
 
-    const pendingInquiries = inquiries.filter(inquiry =>
-        inquiry.status === 'pending' &&
-        ownedProperties.some(prop => String(prop.id) === String(inquiry.property_id))
-    );
+    const pendingInquiries = useMemo(() => {
+        return inquiries.filter(inquiry =>
+            inquiry.status === 'pending' &&
+            ownedProperties.some(prop => String(prop.id) === String(inquiry.property_id))
+        );
+    }, [inquiries, ownedProperties]);
 
     const handleReject = (id) => {
         setModalConfig({
@@ -59,34 +78,39 @@ export default function InquiriesList() {
     const executeReject = async (id) => {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
-            const [response] = await Promise.all([declineInquiry(id), minDelay]);
-            if (response.success) {
+            const res = await inquiryService.decline(id);
+            if (res.data?.success) {
                 setInquiries(prev => prev.filter(iq => iq.id !== id));
                 showToast("Inquiry declined.", "success");
             } else {
-                showToast(response.message || "Failed to decline.", "error");
+                showToast(res.data?.message || "Failed to decline.", "error");
             }
+        } catch (error) {
+            showToast("An interface exception occurred.", "error");
         } finally {
             setIsGlobalLoading(false);
         }
     };
 
-    const handleAcceptClick = (inq) => {
+    const handleAcceptClick = async (inq) => {
         const property = properties.find(p => String(p.id) === String(inq.property_id));
         const monthlyRate = property ? parseFloat(property.price_monthly) : 0;
 
-        if (inq.tenant_balance !== undefined) {
-            const balance = parseFloat(inq.tenant_balance);
+        try {
+            // Verify real-time balance
+            const userRes = await userService.getProfile(inq.tenant_id);
+            const tenantBalance = parseFloat(userRes.data?.data?.balance || userRes.data?.balance || 0);
 
-            if (balance < monthlyRate) {
-                showToast(`Tenant has insufficient balance (₱${balance.toLocaleString()}).`, "error");
+            if (tenantBalance < monthlyRate) {
+                showToast(`Tenant does not have enough balance.`, "error");
                 return;
             }
+            setAcceptingId(inq.id);
+        } catch (error) {
+            console.error("Balance verification error:", error);
+            showToast("Could not verify tenant balance.", "error");
         }
-        setAcceptingId(inq.id);
     };
 
     const handleAcceptConfirm = async (inq) => {
@@ -96,34 +120,35 @@ export default function InquiriesList() {
         }
 
         setIsGlobalLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
-            const [response] = await Promise.all([acceptInquiry(inq, occupancyDetails), minDelay]);
-            if (response.success) {
+            const requestPayload = {
+                inquiry_id: parseInt(inq.id, 10),
+                unit_occupancy: occupancyDetails.trim()
+            };
+
+            const res = await inquiryService.accept(requestPayload);
+
+            if (res.data?.success) {
                 setInquiries(prev => prev.filter(iq => iq.id !== inq.id));
                 setAcceptingId(null);
-                showToast("Accepted successfully!", "success");
-                triggerBalanceUpdate();
+                setOccupancyDetails('');
+                showToast(res.data?.message || "Accepted successfully!", "success");
+                window.dispatchEvent(new Event(USER_UPDATE_EVENT));
+            } else {
+                showToast(res.data?.message || "Failed to process lease acceptance.", "error");
             }
+        } catch (error) {
+            const serverMessage = error.response?.data?.message;
+            showToast(serverMessage || "Network exception processing transaction.", "error");
         } finally {
             setIsGlobalLoading(false);
         }
     };
 
-    useEffect(() => {
-        loadInquiries();
-    }, []);
-
     const formatDate = (dateString) => {
         if (!dateString) return "";
-        const date = new Date(dateString.replace(' ', 'T'));
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+        return new Date(dateString.replace(' ', 'T')).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
         });
     };
 
@@ -133,7 +158,6 @@ export default function InquiriesList() {
             <div className="page-main">
                 <div className="page-content">
                     <div className="my-properties-container">
-
                         <div className="property-form-header">
                             <button onClick={() => navigate('/main/my-properties')} className="property-form-back-btn">
                                 <ChevronLeft size={20} />
@@ -195,7 +219,6 @@ export default function InquiriesList() {
                                 </>
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>

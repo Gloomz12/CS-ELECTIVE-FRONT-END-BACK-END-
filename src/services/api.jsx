@@ -30,10 +30,23 @@ export const propertyService = {
     getById: (id) => api.get(`properties/${id}`),
     getByOwnerId: (ownerId) => api.get(`properties`, { params: { owner_id: ownerId } }),
     getOwnerContextProperties: () => api.get(`properties/owner`),
+    getAllTransactions: () => api.get(`properties/transactions`),
+    getFilteredTransactions: (userId, unitOccupancy) =>
+        api.get(`properties/filter-transactions`, {
+            params: {
+                user_id: userId,
+                unit: unitOccupancy
+            }
+        }),
     addProperty: (data) => api.post(`properties`, data),
     updateProperty: (id, data) => api.put(`properties/${id}`, data),
     deleteProperty: (id) => api.delete(`properties/${id}`),
-    updateStatus: (id, status) => api.put(`properties/status/${id}`, { status: status }),
+    updateStatus: (id, status) =>
+        api.put(`properties/${id}`, {
+            status_only: true,
+            status: status
+        }),
+
 };
 
 export const leaseService = {

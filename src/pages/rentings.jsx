@@ -1,33 +1,40 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
+// SERVICES
+import { leaseService, propertyService } from '../services/api.jsx';
+
 // HOOKS
-import useFetchRentings from '../hooks/fetchRentings.jsx';
 import useManageLeasePendings from '../hooks/useManageLeasePendings';
-import useFetchTransactions from '../hooks/fetchTransaction.jsx'
 
 export default function Rentings() {
     const navigate = useNavigate();
-    const { setIsGlobalLoading } = useOutletContext(); 
-    const { rentings, isLoading } = useFetchRentings();
+    const { setIsGlobalLoading } = useOutletContext();
+
+    const [rentings, setRentings] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        let timer;
-        if (isLoading) {
-            setIsGlobalLoading(true);
-        } else {
-            timer = setTimeout(() => {
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                setIsGlobalLoading(true);
+
+                const response = await leaseService.getUserLeases();
+                setRentings(response.data.data || response.data);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setIsLoading(false);
                 setIsGlobalLoading(false);
-            }, 1000);
-        }
-        return () => {
-            if (timer) clearTimeout(timer);
+            }
         };
-    }, [isLoading, setIsGlobalLoading]);
+        fetchData();
+    }, [setIsGlobalLoading]);
 
     const normalizedRentings = useMemo(() => {
         if (!rentings || rentings.length === 0) return [];
-        
+        console.log(rentings)
         return rentings.map(r => {
             let firstImg = r.imageUrl || r.image_url;
             try {
@@ -46,7 +53,7 @@ export default function Rentings() {
             }
 
             return {
-                ...r, 
+                ...r,
                 id: r.id,
                 propertyName: r.propertyName || r.property_name,
                 startDate: r.startDate || r.start_date,
@@ -55,18 +62,24 @@ export default function Rentings() {
                 leaseTerm: parseInt(r.leaseTerm || r.lease_term || 0, 10),
                 totalDue: parseFloat(r.totalDue || r.total_due || 0),
                 unitOccupancy: r.unitOccupancy || r.unit_occupancy,
-                imageUrl: firstImg || "/placeholder.jpg"
+                imageUrl: firstImg || "/placeholder.jpg",
+                ownerId: r.ownerId
             };
         });
     }, [rentings]);
 
+    console.log(normalizedRentings)
+
     const processedRentings = useManageLeasePendings(normalizedRentings);
+
+
 
     const rentingsWithUI = useMemo(() => {
         return processedRentings.map(r => {
             const isFullyPaid = r.totalPaid >= r.totalDue && r.totalDue > 0;
             let liveStatus = r.calculatedStatus || "Up to date";
             let statusClass = "rentings-badge-uptodate";
+            console.log(r.tenantId)
 
             if (isFullyPaid) {
                 liveStatus = "Fully Paid";
@@ -131,16 +144,14 @@ export default function Rentings() {
                                                     <p className="rentings-rate-label">Monthly Rate</p>
                                                     <p className="rentings-rate-value">₱{renting.monthlyRate.toLocaleString()}</p>
                                                 </div>
-                                                <div className={`rentings-rate-box ${
-                                                    renting.isFullyPaid ? 'rentings-rate-fullypaid' : 
-                                                    renting.calculatedMonthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'
-                                                }`}>
+                                                <div className={`rentings-rate-box ${renting.isFullyPaid ? 'rentings-rate-fullypaid' :
+                                                        renting.calculatedMonthsPending > 0 ? 'rentings-rate-danger' : 'rentings-rate-success'
+                                                    }`}>
                                                     <p className="rentings-rate-label">
-                                                        {renting.isFullyPaid ? 'Contract Status' : 
-                                                         renting.calculatedMonthsPending > 0 ? `Amount Due (${renting.calculatedMonthsPending} mo)` : 'Balance'}
+                                                        {renting.isFullyPaid ? 'Contract Status' : renting.calculatedMonthsPending > 0 ? `Amount Due (${renting.calculatedMonthsPending} mo)` : 'Total Paid'}
                                                     </p>
                                                     <p className="rentings-rate-value">
-                                                        {renting.isFullyPaid ? 'Fully Paid' : `₱${(renting.calculatedPendingPayment || 0).toLocaleString()}`}
+                                                        {renting.isFullyPaid ? 'Fully Paid' : `₱${(renting.totalPaid || 0).toLocaleString()}`}
                                                     </p>
                                                 </div>
                                             </div>
