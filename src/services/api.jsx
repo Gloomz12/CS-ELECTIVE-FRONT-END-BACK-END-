@@ -58,8 +58,9 @@ export const leaseService = {
 export const tenantService = {
     addTenant: (data) => api.post(`tenants`, data),
     getByPropertyId: (propertyId) => api.get(`tenants`, { params: { property_id: propertyId } }),
-    removeTenant: (id) => api.delete(`admin/tenants/${id}`),
+    removeTenant: (id) => api.delete(`tenants/${id}`),
 };
+
 export const paymentService = {
     process: (data) => api.post(`payments`, data),
     getHistory: (tenantId) => api.get(`payments/tenant/${tenantId}`),

@@ -39,8 +39,5 @@ class Admin
         return execQuery($sql, null, $this->pdo);
     }
 
-    public function getAllTransactions(): array
-    {
-        return execQuery("CALL GetAllTransactions()", null, $this->pdo);
-    }
+
 }

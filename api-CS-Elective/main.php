@@ -223,7 +223,6 @@ switch ($endpoint) {
         if ($method === 'POST') {
             $data = empty((array)$data) ? (object)$_POST : $data;
 
-            // Image File Processing
             $propDir = '/images/properties/';
             if (isset($_FILES['property_image']) && $_FILES['property_image']['error'] === UPLOAD_ERR_OK) {
                 $propFile = basename($_FILES['property_image']['name']);
@@ -232,7 +231,6 @@ switch ($endpoint) {
                 }
             }
 
-            // Map File Processing
             $mapDir = '/images/maps/';
             if (isset($_FILES['map_image']) && $_FILES['map_image']['error'] === UPLOAD_ERR_OK) {
                 $mapFile = basename($_FILES['map_image']['name']);
@@ -248,7 +246,6 @@ switch ($endpoint) {
         }
 
         if ($method === 'PUT' && $subRoute && is_numeric($subRoute)) {
-            // Read incoming structured JSON or merge form fields if using multipart/form-data
             $rawInput = json_decode(file_get_contents('php://input'));
             if ($rawInput) {
                 $data = $rawInput;
@@ -364,7 +361,23 @@ switch ($endpoint) {
             http_response_code($res['success'] ? 200 : 500);
             sendResponse($res);
         }
+
+        if ($method === 'DELETE') {
+            if (!empty($subRoute) && is_numeric($subRoute)) {
+                $res = $rental->removeTenant((int)$subRoute);
+                http_response_code($res['success'] ? 200 : 400);
+                sendResponse($res);
+                break;
+            } else {
+                http_response_code(400);
+                sendResponse(["success" => false, "message" => "Valid Tenant ID required."]);
+                break;
+            }
+        }
+
         break;
+
+
 
     case 'payments':
         if ($method === 'POST') {
@@ -442,13 +455,6 @@ switch ($endpoint) {
                 http_response_code(500);
                 sendResponse(["success" => false, "message" => "Failed to retrieve active tenant directory."]);
             }
-        }
-
-        if ($method === 'DELETE' && $subRoute === 'tenants' && $childParam) {
-            $res = $rental->removeTenant((int)$childParam);
-            http_response_code($res['status']);
-            sendResponse($res);
-            break;
         }
 
     case 'reports':

@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
 // SERVICES
-import { leaseService, propertyService } from '../services/api.jsx';
+import { leaseService } from '../services/api.jsx';
 
 // HOOKS
 import useManageLeasePendings from '../hooks/useManageLeasePendings';
@@ -13,8 +13,13 @@ export default function Rentings() {
 
     const [rentings, setRentings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     useEffect(() => {
+        // Get user ID from session/local storage
+        const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+        setCurrentUserId(userId ? parseInt(userId) : null);
+
         const fetchData = async () => {
             try {
                 setIsLoading(true);
@@ -34,7 +39,6 @@ export default function Rentings() {
 
     const normalizedRentings = useMemo(() => {
         if (!rentings || rentings.length === 0) return [];
-        console.log(rentings)
         return rentings.map(r => {
             let firstImg = r.imageUrl || r.image_url;
             try {
@@ -63,38 +67,35 @@ export default function Rentings() {
                 totalDue: parseFloat(r.totalDue || r.total_due || 0),
                 unitOccupancy: r.unitOccupancy || r.unit_occupancy,
                 imageUrl: firstImg || "/placeholder.jpg",
-                ownerId: r.ownerId
+                ownerId: parseInt(r.ownerId) // Ensure comparison type safety
             };
         });
     }, [rentings]);
 
-    console.log(normalizedRentings)
-
     const processedRentings = useManageLeasePendings(normalizedRentings);
 
-
-
     const rentingsWithUI = useMemo(() => {
-        return processedRentings.map(r => {
-            const isFullyPaid = r.totalPaid >= r.totalDue && r.totalDue > 0;
-            let liveStatus = r.calculatedStatus || "Up to date";
-            let statusClass = "rentings-badge-uptodate";
-            console.log(r.tenantId)
+        return processedRentings
+            .filter(r => r.ownerId !== currentUserId) 
+            .map(r => {
+                const isFullyPaid = r.totalPaid >= r.totalDue && r.totalDue > 0;
+                let liveStatus = r.calculatedStatus || "Up to date";
+                let statusClass = "rentings-badge-uptodate";
 
-            if (isFullyPaid) {
-                liveStatus = "Fully Paid";
-                statusClass = "rentings-badge-fullypaid";
-            } else if (r.calculatedStatus === 'Pending') {
-                liveStatus = "Overdue";
-                statusClass = "rentings-badge-pending";
-            } else if (r.calculatedStatus === 'Advanced payment') {
-                liveStatus = "Advance Paid";
-                statusClass = "rentings-badge-advance";
-            }
+                if (isFullyPaid) {
+                    liveStatus = "Fully Paid";
+                    statusClass = "rentings-badge-fullypaid";
+                } else if (r.calculatedStatus === 'Pending') {
+                    liveStatus = "Overdue";
+                    statusClass = "rentings-badge-pending";
+                } else if (r.calculatedStatus === 'Advanced payment') {
+                    liveStatus = "Advance Paid";
+                    statusClass = "rentings-badge-advance";
+                }
 
-            return { ...r, isFullyPaid, liveStatus, statusClass };
-        });
-    }, [processedRentings]);
+                return { ...r, isFullyPaid, liveStatus, statusClass };
+            });
+    }, [processedRentings, currentUserId]);
 
     if (isLoading) {
         return <div className="rentings-wrapper"><p>Loading rentings...</p></div>;
@@ -137,7 +138,7 @@ export default function Rentings() {
                                                 Lease Term: {renting.leaseTerm} months • Started {renting.startDate}
                                             </p>
                                             <p className="rentings-card-subtitle">
-                                                Room Occupancy: {renting.unitOccupancy}
+                                                Occupancy: {renting.unitOccupancy}
                                             </p>
                                             <div className="rentings-rates-row">
                                                 <div className="rentings-rate-box rentings-rate-normal">

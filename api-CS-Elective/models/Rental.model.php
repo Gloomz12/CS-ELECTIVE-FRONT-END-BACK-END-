@@ -59,25 +59,18 @@ class Rental
         return execQuery($sql, $values, $this->pdo);
     }
 
-    public function removeTenant($tenantId)
+    public function removeTenant(int $tenantId): array
     {
         try {
-            $checkSql = "SELECT id FROM rentings WHERE id = ? LIMIT 1";
-            $stmtCheck = $this->pdo->prepare($checkSql);
-            $stmtCheck->execute([(int)$tenantId]);
-
-            if (!$stmtCheck->fetch()) {
-                return ["success" => false, "message" => "Tenant record not found.", "status" => 404];
+            $stmt = $this->pdo->prepare("CALL RemoveTenant(?)");
+            $stmt->execute([(int)$tenantId]);
+            if ($stmt->rowCount() > 0) {
+                return ["success" => true, "message" => "Tenant record removed.", "status" => 200];
+            } else {
+                return ["success" => false, "message" => "Tenant not found or could not be removed.", "status" => 404];
             }
-
-            $stmt = $this->pdo->prepare("DELETE FROM rentings WHERE id = ?");
-            $result = $stmt->execute([(int)$tenantId]);
-
-            return $result ?
-                ["success" => true, "message" => "Tenant record removed.", "status" => 200] :
-                ["success" => false, "message" => "Delete failed.", "status" => 400];
         } catch (PDOException $e) {
-            return ["success" => false, "message" => "DB Error: " . $e->getMessage(), "status" => 500];
+            return ["success" => false, "message" => "Database error: " . $e->getMessage(), "status" => 500];
         }
     }
 }

@@ -22,9 +22,9 @@ export default function MyPropertyDetailsView() {
 
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
     const [tenants, setTenants] = useState([]);
-    console.log(tenants);
     const [isTenantsLoading, setIsTenantsLoading] = useState(true);
     const [isPropertyLoading, setIsPropertyLoading] = useState(!currentProperty);
+    const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
     const fetchPropertyDetails = useCallback(async () => {
         if (!currentProperty?.id) return;
@@ -68,8 +68,6 @@ export default function MyPropertyDetailsView() {
     }, [currentProperty?.id, fetchPropertyDetails, fetchPropertyTenants]);
 
     const processedTenants = useManageLeasePendings(tenants);
-
-    const [modalConfig, setModalConfig] = useState({ isOpen: false });
 
     const isDeletable = useMemo(() => {
         if (!processedTenants || processedTenants.length === 0) return true;
@@ -129,13 +127,14 @@ export default function MyPropertyDetailsView() {
                 showToast(res.data?.message || "Property elimination rejected by controller.", "error");
             }
         } catch (err) {
-            showToast("An error occurred during deletion", "error");
+            showToast("All tenants must be fully paid or delete all tenants", "error");
         } finally {
             setIsGlobalLoading(false);
         }
     };
 
     const handleRemoveTenantClick = (tenant) => {
+        console.log("Attempting to remove tenant with ID:", tenant);
         setModalConfig({
             isOpen: true,
             title: "Remove Tenant",
@@ -147,16 +146,11 @@ export default function MyPropertyDetailsView() {
     };
 
     const executeRemoveTenant = async (tenantId) => {
+        console.log("Attempting to remove tenant with ID:", tenantId);
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
-            const [res] = await Promise.all([
-                tenantService.removeTenant(tenantId),
-                minDelay
-            ]);
-
+            const res = await tenantService.removeTenant(tenantId);
             if (res.data && res.data.success) {
                 showToast(res.data.message || "Tenant removed successfully", "success");
                 fetchPropertyTenants();
@@ -182,7 +176,6 @@ export default function MyPropertyDetailsView() {
             monthlyRate: tenant.monthlyRate,
             unitOccupancy: tenant.occupancy
         };
-        console.log(leaseData)
 
         const occupancySlug = (tenant.occupancy || "n-a").toLowerCase().replace(/\s+/g, '-');
         navigate(`/main/tenant-transaction-history/${leaseData.ownerId}/${leaseData.propertyId}/${occupancySlug}`, {
@@ -200,14 +193,12 @@ export default function MyPropertyDetailsView() {
             <div className="page-main">
                 <div className="page-content">
                     <div className="property-details-container">
-
                         <div className="property-details-header-card">
                             <div className="header-title-row">
                                 <button onClick={() => navigate('/main/my-properties')} className="property-form-back-btn">
                                     <ChevronLeft size={20} />
                                 </button>
                                 <h2 className="property-details-title">Manage: {currentProperty.name}</h2>
-
                                 <button
                                     id="delete-property-main-btn"
                                     className={`action-icon-btn delete ${!isDeletable ? 'btn-disabled' : ''}`}
@@ -275,11 +266,10 @@ export default function MyPropertyDetailsView() {
                                                 <td className={`property-details-td text-right ${tenant.calculatedPendingPayment > 0 ? 'text-danger' : ''}`}>
                                                     {tenant.calculatedPendingPayment > 0 ? `₱${tenant.calculatedPendingPayment.toLocaleString()}` : 'None'}
                                                 </td>
-                                                <td className="property-details-td text-right">₱{tenant.totalPaid.toLocaleString()}</td>
+                                                <td className="property-details-td text-right">₱{(tenant.totalPaid || 0).toLocaleString()}</td>
                                                 <td className="property-details-td action-cell">
                                                     <div className="property-details-action-group">
                                                         <button
-                                                            id={`view-history-btn-${tenant.id}`}
                                                             className="action-icon-btn history property-details-history-btn"
                                                             onClick={() => handleViewHistory(tenant)}
                                                             title="View Transaction History"
