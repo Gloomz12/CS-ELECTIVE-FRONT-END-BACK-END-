@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost/API";
+const API_BASE_URL = "http://localhost/api-CS-Elective";
 
 export const removeTenant = async (tenantId) => {
     try {

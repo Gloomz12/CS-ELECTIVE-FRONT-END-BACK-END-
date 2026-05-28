@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 // Icons
@@ -7,13 +7,11 @@ import { ChevronLeft, User, Trash2, History } from 'lucide-react';
 // Components
 import { ConfirmationModal } from '../components/confirmationModal.jsx';
 
-// Hooks
-import useFetchTenants from "../hooks/fetchTenants";
-import useManageLeasePendings from "../hooks/useManageLeasePendings";
-
 // Services
-import { changePropertyState } from "../services/changePropertyState";
-import { deleteProperty, removeTenant } from "../services/propertyActions";
+import { propertyService, tenantService } from '../services/api';
+
+// Hooks
+import useManageLeasePendings from "../hooks/useManageLeasePendings";
 
 export default function MyPropertyDetailsView() {
     const navigate = useNavigate();
@@ -23,11 +21,53 @@ export default function MyPropertyDetailsView() {
     const { showToast, setIsGlobalLoading } = useOutletContext();
 
     const [currentProperty, setCurrentProperty] = useState(location.state?.property);
-    const { tenants, isLoading, refetch } = useFetchTenants(currentProperty?.id, currentProperty.owner_id);
-    const processedTenants = useManageLeasePendings(tenants);
-    console.log(processedTenants)
-
+    const [tenants, setTenants] = useState([]);
+    const [isTenantsLoading, setIsTenantsLoading] = useState(true);
+    const [isPropertyLoading, setIsPropertyLoading] = useState(!currentProperty);
     const [modalConfig, setModalConfig] = useState({ isOpen: false });
+
+    const fetchPropertyDetails = useCallback(async () => {
+        if (!currentProperty?.id) return;
+        try {
+            const res = await propertyService.getById(currentProperty.id);
+            if (res.data && res.data.success) {
+                setCurrentProperty(res.data.data);
+            } else if (res.data && !res.data.success && !location.state?.property) {
+                showToast(res.data.message || "Failed to sync property details", "error");
+            }
+        } catch (error) {
+            console.error("Failed to query fresh property information parameters:", error);
+        } finally {
+            setIsPropertyLoading(false);
+        }
+    }, [currentProperty?.id, location.state?.property, showToast]);
+
+    const fetchPropertyTenants = useCallback(async () => {
+        if (!currentProperty?.id) return;
+        setIsTenantsLoading(true);
+        try {
+            const res = await tenantService.getByPropertyId(currentProperty.id);
+            if (res.data && res.data.success) {
+                setTenants(res.data.data || []);
+            } else if (Array.isArray(res.data)) {
+                setTenants(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to query property active lease directory:", error);
+            showToast("Failed to reload tenants listing", "error");
+        } finally {
+            setIsTenantsLoading(false);
+        }
+    }, [currentProperty?.id, showToast]);
+
+    useEffect(() => {
+        if (currentProperty?.id) {
+            fetchPropertyDetails();
+            fetchPropertyTenants();
+        }
+    }, [currentProperty?.id, fetchPropertyDetails, fetchPropertyTenants]);
+
+    const processedTenants = useManageLeasePendings(tenants);
 
     const isDeletable = useMemo(() => {
         if (!processedTenants || processedTenants.length === 0) return true;
@@ -44,14 +84,15 @@ export default function MyPropertyDetailsView() {
         if (currentProperty.status === newStatus) return;
         setIsGlobalLoading(true);
         try {
-            const result = await changePropertyState(currentProperty.id, newStatus);
-            if (result.success) {
+            const response = await propertyService.updateStatus(currentProperty.id, newStatus);
+            if (response.data && response.data.success) {
                 setCurrentProperty(prev => ({ ...prev, status: newStatus }));
                 showToast("Status updated successfully", "success");
             } else {
-                showToast(result.message, "error");
+                showToast(response.data?.message || "Failed to alter status state", "error");
             }
         } catch (error) {
+            console.error("Status Change Failure Context:", error);
             showToast("Failed to update status", "error");
         } finally {
             setIsGlobalLoading(false);
@@ -78,21 +119,22 @@ export default function MyPropertyDetailsView() {
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
         try {
-            const res = await deleteProperty(currentProperty.id);
-            if (res.success) {
+            const res = await propertyService.deleteProperty(currentProperty.id);
+            if (res.data && res.data.success) {
                 showToast("Property deleted successfully", "success");
                 navigate('/main/my-properties');
             } else {
-                showToast(res.message, "error");
+                showToast(res.data?.message || "Property elimination rejected by controller.", "error");
             }
         } catch (err) {
-            showToast("An error occurred during deletion", "error");
+            showToast("All tenants must be fully paid or delete all tenants", "error");
         } finally {
             setIsGlobalLoading(false);
         }
     };
 
     const handleRemoveTenantClick = (tenant) => {
+        console.log("Attempting to remove tenant with ID:", tenant);
         setModalConfig({
             isOpen: true,
             title: "Remove Tenant",
@@ -104,28 +146,20 @@ export default function MyPropertyDetailsView() {
     };
 
     const executeRemoveTenant = async (tenantId) => {
+        console.log("Attempting to remove tenant with ID:", tenantId);
         setModalConfig({ isOpen: false });
         setIsGlobalLoading(true);
-
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
-            const [res] = await Promise.all([
-                removeTenant(tenantId),
-                minDelay
-            ]);
-
-            if (res && res.success) {
-                showToast(res.message, "success");
-                if (typeof refetch === 'function') {
-                    refetch();
-                }
+            const res = await tenantService.removeTenant(tenantId);
+            if (res.data && res.data.success) {
+                showToast(res.data.message || "Tenant removed successfully", "success");
+                fetchPropertyTenants();
             } else {
-                showToast(res?.message || "Failed to remove tenant", "error");
+                showToast(res.data?.message || "Failed to remove tenant", "error");
             }
         } catch (err) {
             console.error("Frontend Crash in executeRemoveTenant:", err);
-            showToast("An unexpected application error occurred. Check console.", "error");
+            showToast("An unexpected application error occurred.", "error");
         } finally {
             setIsGlobalLoading(false);
         }
@@ -134,7 +168,7 @@ export default function MyPropertyDetailsView() {
     const handleViewHistory = (tenant) => {
         const leaseData = {
             id: tenant.id,
-            tenantId: tenant.tenant_id,
+            tenantId: tenant.tenant_id || tenant.tenantId,
             tenantName: tenant.tenantName,
             propertyId: currentProperty.id,
             ownerId: currentProperty.owner_id,
@@ -143,16 +177,14 @@ export default function MyPropertyDetailsView() {
             unitOccupancy: tenant.occupancy
         };
 
-
         const occupancySlug = (tenant.occupancy || "n-a").toLowerCase().replace(/\s+/g, '-');
-
         navigate(`/main/tenant-transaction-history/${leaseData.ownerId}/${leaseData.propertyId}/${occupancySlug}`, {
             state: { leaseData }
         });
     };
 
-    if (!currentProperty) return <div className="page-layout">Property not found.</div>;
-    if (isLoading) return <div className="loading-spinner">Loading...</div>;
+    if (!currentProperty && !isPropertyLoading) return <div className="page-layout">Property not found.</div>;
+    if (isTenantsLoading || isPropertyLoading) return <div className="loading-spinner">Loading...</div>;
 
     return (
         <div className="page-layout" id="property-details-view">
@@ -161,14 +193,12 @@ export default function MyPropertyDetailsView() {
             <div className="page-main">
                 <div className="page-content">
                     <div className="property-details-container">
-
                         <div className="property-details-header-card">
                             <div className="header-title-row">
                                 <button onClick={() => navigate('/main/my-properties')} className="property-form-back-btn">
                                     <ChevronLeft size={20} />
                                 </button>
                                 <h2 className="property-details-title">Manage: {currentProperty.name}</h2>
-
                                 <button
                                     id="delete-property-main-btn"
                                     className={`action-icon-btn delete ${!isDeletable ? 'btn-disabled' : ''}`}
@@ -210,6 +240,7 @@ export default function MyPropertyDetailsView() {
                                     <thead>
                                         <tr>
                                             <th className="property-details-th">Tenant Name</th>
+                                            <th className="property-details-th">Unit Occupancy</th>
                                             <th className="property-details-th">Start Date</th>
                                             <th className="property-details-th">Lease Term</th>
                                             <th className="property-details-th text-right">Monthly Rate</th>
@@ -223,6 +254,7 @@ export default function MyPropertyDetailsView() {
                                         {processedTenants.map((tenant) => (
                                             <tr key={tenant.id}>
                                                 <td className="property-details-td tenant-name">{tenant.tenantName}</td>
+                                                <td className="property-details-td">{tenant.occupancy || "N/A"}</td>
                                                 <td className="property-details-td">{formatDate(tenant.startDate)}</td>
                                                 <td className="property-details-td">{tenant.leaseTerm} months</td>
                                                 <td className="property-details-td text-right">₱{Number(tenant.monthlyRate || 0).toLocaleString()}</td>
@@ -234,11 +266,10 @@ export default function MyPropertyDetailsView() {
                                                 <td className={`property-details-td text-right ${tenant.calculatedPendingPayment > 0 ? 'text-danger' : ''}`}>
                                                     {tenant.calculatedPendingPayment > 0 ? `₱${tenant.calculatedPendingPayment.toLocaleString()}` : 'None'}
                                                 </td>
-                                                <td className="property-details-td text-right">₱{tenant.totalPaid.toLocaleString()}</td>
+                                                <td className="property-details-td text-right">₱{(tenant.totalPaid || 0).toLocaleString()}</td>
                                                 <td className="property-details-td action-cell">
                                                     <div className="property-details-action-group">
                                                         <button
-                                                            id={`view-history-btn-${tenant.id}`}
                                                             className="action-icon-btn history property-details-history-btn"
                                                             onClick={() => handleViewHistory(tenant)}
                                                             title="View Transaction History"
@@ -257,7 +288,9 @@ export default function MyPropertyDetailsView() {
                                             </tr>
                                         ))}
                                         {processedTenants.length === 0 && (
-                                            <tr><td colSpan="8" className="property-details-empty-row">No active tenants.</td></tr>
+                                            <tr>
+                                                <td colSpan="9" className="property-details-empty-row">No active tenants.</td>
+                                            </tr>
                                         )}
                                     </tbody>
                                 </table>

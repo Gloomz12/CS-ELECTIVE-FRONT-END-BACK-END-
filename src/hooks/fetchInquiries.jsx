@@ -7,7 +7,7 @@ export default function UseFetchInquiries() {
     useEffect(() => {
         const fetchInquiries = async () => {
             try {
-                const response = await axios.get("http://localhost/api/inquiries/fetchInquiries.php");
+                const response = await axios.get("http://localhost/api-CS-Elective/inquiries/fetchInquiries.php");
                 
                 if (response.data.success) {
                     setInquiries(response.data.data);

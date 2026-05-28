@@ -9,7 +9,7 @@ export default function UseFetchProperties() {
             const userId = localStorage.getItem("userId"); 
 
             try {
-                const response = await axios.post("http://localhost/api/properties/fetchProperties.php", {
+                const response = await axios.post("http://localhost/api-CS-Elective/properties/fetchProperties.php", {
                     user_id: userId 
                 });
 

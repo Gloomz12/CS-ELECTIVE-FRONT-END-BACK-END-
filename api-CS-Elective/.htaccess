@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api-CS-Elective/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ main.php?request=$1 [L,QSA]
+</IfModule>

@@ -14,7 +14,7 @@ export default function useFetchRentings() {
             }
 
             try {
-                const response = await axios.post("http://localhost/api/rentings/fetchRentings.php", {
+                const response = await axios.post("http://localhost/api-CS-Elective/rentings/fetchRentings.php", {
                     user_id: userId
                 });
 

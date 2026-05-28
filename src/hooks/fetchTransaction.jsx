@@ -13,7 +13,7 @@ const useFetchTransactions = (userId) => {
         setError(null);
 
         try {
-            const response = await axios.get("http://localhost/api/transactions/fetchTransaction.php", {
+            const response = await axios.get("http://localhost/api-CS-Elective/transactions/fetchTransaction.php", {
                 params: {
                     userId: userId 
                 }

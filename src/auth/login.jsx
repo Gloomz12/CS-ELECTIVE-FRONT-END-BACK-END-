@@ -15,6 +15,8 @@ function Login() {
         try {
             const response = await authService.login({ email, password });
             if (response.data.success) {
+                sessionStorage.setItem("userId", response.data.user_id);
+
                 navigate("/main/home");
             } else {
                 alert(response.data.message || "Login failed");

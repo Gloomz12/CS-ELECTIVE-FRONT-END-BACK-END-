@@ -1,17 +1,39 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams, useOutletContext } from 'react-router-dom';
-import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react';
-import useFetchUser from '../hooks/fetchUser';
-import UseFetchProperties from '../hooks/fetchProperties';
+import { ChevronLeft, MapPin, CheckCircle, X } from 'lucide-react';
+import { propertyService, userService } from '../services/api.jsx';
 
 export default function PropertyDetailsView() {
     const { propertyName } = useParams();
-    const { setIsGlobalLoading } = useOutletContext(); 
+    const { setIsGlobalLoading } = useOutletContext();
     const location = useLocation();
     const navigate = useNavigate();
-    const user = useFetchUser();
 
-    const allProperties = UseFetchProperties();
+    const [allProperties, setAllProperties] = useState([]);
+    const [userId, setUserId] = useState(null);
+    const [loading, setLoading] = useState(true);
+    // State for image overlay
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsGlobalLoading(true);
+            try {
+                const userRes = await userService.getProfile();
+                setUserId(userRes.data?.data?.id || sessionStorage.getItem("userId") || localStorage.getItem("userId"));
+
+                const propRes = await propertyService.getAll();
+                setAllProperties(propRes.data?.data || []);
+            } catch (err) {
+                console.error("Error fetching data:", err);
+            } finally {
+                setLoading(false);
+                setIsGlobalLoading(false);
+            }
+        };
+        fetchData();
+    }, [setIsGlobalLoading]);
+
     const locationProperty = location.state?.propertyData;
 
     const property = allProperties.find(p => {
@@ -19,22 +41,7 @@ export default function PropertyDetailsView() {
         return formattedName === propertyName;
     }) || locationProperty;
 
-    useEffect(() => {
-        let timer;
-        if (!property) {
-            setIsGlobalLoading(true);
-        } else {
-            timer = setTimeout(() => {
-                setIsGlobalLoading(false);
-            }, 1000);
-        }
-
-        return () => {
-            if (timer) clearTimeout(timer);
-        };
-    }, [property, setIsGlobalLoading]);
-
-    if (!property) {
+    if (!loading && !property) {
         return (
             <div className="property-view-not-found">
                 <h2>Property not found.</h2>
@@ -43,9 +50,12 @@ export default function PropertyDetailsView() {
         );
     }
 
-    const isUnavailable = property.status === 'occupied' || property.status === 'unavailable';
-    const currentOwner = property.owner_id === user.id;
+    if (loading) return null;
 
+    const isUnavailable = property.status === 'occupied' || property.status === 'unavailable';
+    const currentOwner = String(property.owner_id) === String(userId);
+
+    // Parse Amenities
     let amenitiesList = [];
     try {
         amenitiesList = typeof property.amenities === 'string'
@@ -55,16 +65,15 @@ export default function PropertyDetailsView() {
         amenitiesList = property.amenities ? property.amenities.split(',') : [];
     }
 
+    // Parse Images
     let imageslist = [];
     try {
         if (typeof property.image_url === 'string') {
             if (property.image_url.startsWith('[')) {
                 imageslist = JSON.parse(property.image_url);
-            }
-            else if (property.image_url.includes('|')) {
+            } else if (property.image_url.includes('|')) {
                 imageslist = property.image_url.split('|').map(url => url.trim());
-            }
-            else {
+            } else {
                 imageslist = [property.image_url];
             }
         } else {
@@ -76,6 +85,16 @@ export default function PropertyDetailsView() {
 
     return (
         <div id="property-view-page" className="property-view-wrapper">
+            {/* Image Overlay Modal */}
+            {selectedImage && (
+                <div className="property-view-overlay" onClick={() => setSelectedImage(null)}>
+                    <button className="overlay-close-btn" onClick={() => setSelectedImage(null)}>
+                        <X size={30} />
+                    </button>
+                    <img src={selectedImage} alt="Full view" className="overlay-img" />
+                </div>
+            )}
+
             <div className="property-view-card-container">
                 <header className="property-view-header">
                     <button onClick={() => navigate('/main/listings')} className="property-view-icon-btn">
@@ -99,12 +118,13 @@ export default function PropertyDetailsView() {
                         imageslist.length === 2 ? 'grid-2' :
                             imageslist.length === 3 ? 'grid-3' :
                                 imageslist.length >= 4 ? 'grid-4' : ''
-                        }`}>
+                    }`}>
                         {imageslist.length > 0 ? (
                             imageslist.slice(0, 5).map((img, index) => (
                                 <div
                                     key={index}
                                     className={`property-view-grid-item ${index === 0 ? 'property-view-grid-main' : ''}`}
+                                    onClick={() => setSelectedImage(img)}
                                 >
                                     <img src={img} alt={`Property view ${index + 1}`} />
                                 </div>
@@ -139,6 +159,8 @@ export default function PropertyDetailsView() {
                                     src={property.map_image_url}
                                     alt="Map location"
                                     className="property-view-map-static"
+                                    onClick={() => setSelectedImage(property.map_image_url)}
+                                    style={{ cursor: 'pointer' }}
                                 />
                             </section>
                         </div>
@@ -154,7 +176,7 @@ export default function PropertyDetailsView() {
                                     <div className="property-view-avatar-badge" title="Verified Landlord"></div>
                                 </div>
 
-                                <h4 className="property-view-landlord-name">Owner: {property.full_name === null ? property.username : property.full_name}</h4>
+                                <h4 className="property-view-landlord-name">Owner: {property.owner_name === null ? property.username : property.owner_name}</h4>
                                 <p className="property-view-landlord-sub">Property Landlord</p>
 
                                 <button

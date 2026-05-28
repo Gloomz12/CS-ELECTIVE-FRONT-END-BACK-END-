@@ -1,47 +1,70 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
 // Icons
 import { Plus, MessageSquare } from 'lucide-react';
 
-// Hooks
-import UseFetchProperties from '../hooks/fetchProperties.jsx';
-import fetchUser from '../hooks/fetchUser.jsx';
-
 // Services
-import { fetchInquiries } from '../services/handleInquiries.jsx';
+import { userService, propertyService, inquiryService } from '../services/api';
 
 export default function MyProperties() {
     const navigate = useNavigate();
     const { setIsGlobalLoading } = useOutletContext();
-    const currentUser = fetchUser();
-    const properties = UseFetchProperties();
+    
+    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+
+    const [currentUser, setCurrentUser] = useState(null);
+    const [properties, setProperties] = useState([]);
     const [allInquiries, setAllInquiries] = useState([]);
 
     useEffect(() => {
-        const getInquiries = async () => {
+        if (!userId) return;
+
+        const fetchManagementData = async () => {
             setIsGlobalLoading(true);
             try {
-                const data = await fetchInquiries();
-                if (Array.isArray(data)) {
-                    setAllInquiries(data);
+                const [profileRes, propertiesRes, inquiriesRes] = await Promise.all([
+                    userService.getProfile(userId),
+                    propertyService.getAll(),
+                    inquiryService.getAll()
+                ]);
+
+                if (profileRes.data && profileRes.data.success) {
+                    setCurrentUser(profileRes.data.data || profileRes.data);
+                }
+
+                if (propertiesRes.data && propertiesRes.data.success) {
+                    setProperties(propertiesRes.data.data || []);
+                } else if (propertiesRes.data) {
+                    setProperties(Array.isArray(propertiesRes.data) ? propertiesRes.data : propertiesRes.data.data || []);
+                }
+
+                if (inquiriesRes.data && inquiriesRes.data.success) {
+                    setAllInquiries(inquiriesRes.data.data || inquiriesRes.data);
+                } else if (inquiriesRes.data) {
+                    setAllInquiries(Array.isArray(inquiriesRes.data) ? inquiriesRes.data : inquiriesRes.data.data || []);
                 }
             } catch (error) {
-                console.error("Error in fetchInquiries service:", error);
+                console.error("Properties Manager Sync Failure:", error);
             } finally {
                 setIsGlobalLoading(false);
             }
         };
-        getInquiries();
-    }, [setIsGlobalLoading]);
 
-    const ownedProperties = properties.filter(prop => String(prop.owner_id) === String(currentUser?.id));
-    console.log(ownedProperties)
+        fetchManagementData();
+    }, [userId, setIsGlobalLoading]);
 
-    const pendingInquiries = allInquiries.filter(inquiry =>
-        inquiry.status === 'pending' &&
-        ownedProperties.some(prop => String(prop.id) === String(inquiry.property_id))
-    );
+    // Derived State Calculations
+    const ownedProperties = useMemo(() => {
+        return properties.filter(prop => String(prop.owner_id) === String(userId));
+    }, [properties, userId]);
+
+    const pendingInquiries = useMemo(() => {
+        return allInquiries.filter(inquiry =>
+            inquiry.status === 'pending' &&
+            ownedProperties.some(prop => String(prop.id) === String(inquiry.property_id))
+        );
+    }, [allInquiries, ownedProperties]);
 
     const inquiriesCount = pendingInquiries.length;
 
